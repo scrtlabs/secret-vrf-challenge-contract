@@ -2,9 +2,9 @@ image: ghcr.io/scrtlabs/localsecret-gitpod:latest
 
 tasks:
   - command: |
-      node faucet_server.js
+      node /home/gitpod/faucet_server.js
   - command: |
-      ./bootstrap_init.sh
+      /home/gitpod/bootstrap_init.sh
 
 ports:
   - port: 26657

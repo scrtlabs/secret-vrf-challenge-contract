@@ -4,10 +4,12 @@ tasks:
   - command: |
       node /home/gitpod/faucet_server.js
   - command: |
-      /home/gitpod/bootstrap_init.sh
+      /home/gitpod/bootstrap_init.sh false
 
 ports:
   - port: 26657
     onOpen: ignore
   - port: 9090-9091
   - port: 5000
+  - port: 1317
+    onOpen: ignore

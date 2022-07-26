@@ -1,5 +1,11 @@
 image: ghcr.io/scrtlabs/localsecret-gitpod:latest
 
+tasks:
+  - command: |
+      node faucet_server.js
+  - command: |
+      ./bootstrap_init.sh
+
 ports:
   - port: 26657
     onOpen: ignore

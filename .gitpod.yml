@@ -6,6 +6,13 @@ tasks:
   - command: |
       /home/gitpod/bootstrap_init.sh false > /dev/null 2>&1 &
 
+jetbrains:
+  intellij:
+    plugins:
+      - io.digiline.secretideplugin
+      - org.rust.lang
+      - org.toml.lang
+
 ports:
   - port: 26657
     onOpen: ignore

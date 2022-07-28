@@ -22,7 +22,7 @@ Therefore, it is expected to value readability over optimized code and idiomatic
 
 ### How is this different from Secret IDE?
 
-(Secret IDE)[https://github.com/digiline-io/Secret-IDE-Plugin] is an awesome tool, that sets up a Jetbrains IDE in the browser for you, with amazing templates to start from. This Gitpod dev env is mainly for users that either:
+[Secret IDE](https://github.com/digiline-io/Secret-IDE-Plugin) is an awesome tool, that sets up a Jetbrains IDE in the browser for you, with amazing templates to start from. However, it does not include the LocalSecret environment. This is mainly where this Gitpod container comes in handy, mainly for users that either:
 
 * Are on M1, and cannot run LocalSecret locally
 * Cannot, or don't want to install docker just to play with a contract

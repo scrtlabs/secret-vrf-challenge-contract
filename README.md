@@ -18,3 +18,12 @@ The code in this repo solves the millionaire's problem in a rather naive way.
 
 This is part of the [Getting Started Guide](https://example.com). It is meant as an easy to understand first contract example.
 Therefore, it is expected to value readability over optimized code and idiomatic Rust.
+
+
+### How is this different from Secret IDE?
+
+(Secret IDE)[https://github.com/digiline-io/Secret-IDE-Plugin] is an awesome tool, that sets up a Jetbrains IDE in the browser for you, with amazing templates to start from. This Gitpod dev env is mainly for users that either:
+
+* Are on M1, and cannot run LocalSecret locally
+* Cannot, or don't want to install docker just to play with a contract
+* Simply prefer the interface of VSCode to that of Jetbrains

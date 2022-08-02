@@ -4,7 +4,7 @@ tasks:
   - command: |
       node /home/gitpod/faucet_server.js
   - command: |
-      /home/gitpod/bootstrap_init.sh false > /dev/null 2>&1 &
+      cd /home/gitpod/ && SCRT_SGX_STORAGE=/opt/secret/.sgx_secrets /home/gitpod/bootstrap_init.sh false > /dev/null 2>&1 &
 
 jetbrains:
   intellij:

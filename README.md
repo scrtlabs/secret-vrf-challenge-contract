@@ -2,11 +2,18 @@
 
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/scrtlabs/GitpodDevEnv)
 
-### LocalSecret as a Service
+## Millionaire's Problem
 
-Can't run your local secret environment because you're on M1, or too lazy to install docker? We got your back!
+The code in this repo solves the millionaire's problem in a rather naive way.
+
+This is part of the [Getting Started Guide](https://example.com). It is meant as an easy to understand first contract example.
+Therefore, it is expected to value readability over optimized code and idiomatic Rust.
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/scrtlabs/GitpodDevEnv)
+
+For a detailed breakdown of the contract code, check out [link to guide when it goes live](http://example.com) 
+
+## Connecting from outside the pod
 
 This will create an environment that automatically starts localsecret, and exposes the ports for application development. To connect,
 prepend the port number with the gitpod url. e.g. if my workspace is at `https://scrtlabs-gitpoddevenv-shqyv12iyrv.ws-eu54.gitpod.io` then I would be able
@@ -14,15 +21,7 @@ to connect to the LCD service at `https://1317-scrtlabs-gitpoddevenv-shqyv12iyrv
 
 This repo also comes with all the dependencies you need to develop Secret Contracts, and SecretCLI. 
 
-### Millionaire's Problem
-
-The code in this repo solves the millionaire's problem in a rather naive way.
-
-This is part of the [Getting Started Guide](https://example.com). It is meant as an easy to understand first contract example.
-Therefore, it is expected to value readability over optimized code and idiomatic Rust.
-
-
-### How is this different from Secret IDE?
+## How is this different from Secret IDE?
 
 [Secret IDE](https://github.com/digiline-io/Secret-IDE-Plugin) is an awesome tool, that sets up a Jetbrains IDE in the browser for you, with amazing templates to start from. However, it does not include the LocalSecret environment. This is mainly where this Gitpod container comes in handy, mainly for users that either:
 

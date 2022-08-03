@@ -8,6 +8,12 @@ tasks:
   - command: |
       echo "Hello and welcome to the Secret Network"
       
+vscode:
+  extensions:
+    - rust-lang.rust
+    - serayuzgur.crates
+    - bungcip.better-toml
+      
 jetbrains:
   intellij:
     plugins:

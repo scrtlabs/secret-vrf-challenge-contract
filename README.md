@@ -6,12 +6,12 @@
 
 The code in this repo solves the millionaire's problem in a rather naive way.
 
-This is part of the [Getting Started Guide](https://example.com). It is meant as an easy to understand first contract example.
+This is part of the [Getting Started Guide](https://docs.scrt.network/secret-network-documentation/development/getting-started). It is meant as an easy to understand first contract example.
 Therefore, it is expected to value readability over optimized code and idiomatic Rust.
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/scrtlabs/MillionaireProblemTutorial)
 
-For a detailed breakdown of the contract code, check out [link to guide when it goes live](http://example.com) 
+For a detailed breakdown of the contract code, check out [here](https://docs.scrt.network/secret-network-documentation/development/getting-started) 
 
 ## Connecting from outside the pod
 

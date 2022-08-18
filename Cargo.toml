@@ -26,5 +26,6 @@ overflow-checks = true
 [dependencies]
 cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
 cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
+# secret-toolkit = "0.4.0"
 serde = { version = "=1.0.103", default-features = false, features = ["derive"] }
 thiserror = "1.0"

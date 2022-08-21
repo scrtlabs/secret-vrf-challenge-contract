@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, Coin, Uint128};
+use cosmwasm_std::{Addr, Coin};
 use serde::{Deserialize, Serialize};
 use crate::state::{GameResult, RPS};
 

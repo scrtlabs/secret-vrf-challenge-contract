@@ -1,27 +1,22 @@
-use std::cmp::Ordering;
+use cosmwasm_std::{Addr, Coin, Storage};
 
-use cosmwasm_std::{Storage, Addr, Coin};
-
-use cosmwasm_storage::{
-    ReadonlySingleton, singleton, Singleton,
-    singleton_read,
-};
+use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 
 use serde::{Deserialize, Serialize};
 
 const CONFIG_KEY: &[u8] = b"config";
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum RPS {
     Rock,
     Paper,
-    Scissors
+    Scissors,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct State {
     pub game_state: GameState,
-    pub players: [Player; 2],
+    pub players: [Option<Player>; 2],
     pub choices: [Option<RPS>; 2],
     pub bet: Option<Coin>,
 }
@@ -30,14 +25,16 @@ pub struct State {
 pub struct GameState {
     pub status: CurrentStatus,
     pub end_game_block: Option<u64>,
-    pub winner: Option<GameResult>
+    pub winner: Option<GameResult>,
 }
 
 impl State {
-    pub fn next(mut self) {
+    pub fn next(&mut self) {
         // make sure to check the status before advancing it
-        if &self.game_state.status == CurrentStatus::Got1stChoice {
-            self.game_state.winner = Some(calculate_winner(&self.choices[0].unwrap(), &self.choices[1].unwrap()));
+        if &self.game_state.status == &CurrentStatus::Got1stChoice {
+            if let (Some(choice1), Some(choice2)) = (&self.choices[0], &self.choices[1]) {
+                self.game_state.winner = Some(calculate_winner(choice1, choice2));
+            }
         }
         self.game_state.status.next();
     }
@@ -47,76 +44,66 @@ impl State {
 pub enum GameResult {
     Player1,
     Player2,
-    Tie
+    Tie,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, PartialEq, Clone, Debug)]
 pub enum CurrentStatus {
-    Initialized,
+    Initialized = 0,
     WaitingForPlayerToJoin,
     Started,
     Got1stChoice,
     DoneGettingChoices,
-    Finalized
+    Finalized,
 }
 
 impl CurrentStatus {
-    pub(crate) fn next(mut self) {
-        match &self {
-            Self::Initialized => { self = Self::WaitingForPlayerToJoin },
-            Self::WaitingForPlayerToJoin => {
-                self = Self::Started
-            },
-            Self::Started => {
-                self = Self::Got1stChoice
-            },
-            Self::Got1stChoice => {
-                self = Self::DoneGettingChoices
-            },
-            Self::DoneGettingChoices => {
-                self = Self::Finalized
-            },
-            Self::Finalized => {
-                self = Self::Started
-            }
+    pub(crate) fn next(&mut self) {
+        match self {
+            Self::Initialized => *self = Self::WaitingForPlayerToJoin,
+            Self::WaitingForPlayerToJoin => *self = Self::Started,
+            Self::Started => *self = Self::Got1stChoice,
+            Self::Got1stChoice => *self = Self::DoneGettingChoices,
+            Self::DoneGettingChoices => *self = Self::Finalized,
+            Self::Finalized => *self = Self::Started,
         }
     }
 
-    fn reset(mut self) {
-        self = Self::Init;
-    }
+    // fn reset(mut self) {
+    //     self = Self::Initialized;
+    // }
 }
 
-impl Default for GameState {
+impl Default for CurrentStatus {
     fn default() -> Self {
-        Self::Init
+        Self::Initialized
     }
 }
 
-impl From<u8> for GameState {
-    fn from(num: u8) -> Self {
-        match num {
-            0 => GameState::Init,
-            1 => GameState::GotFromPlayer1,
-            2 => GameState::GotFromPlayer2,
-            3 => GameState::Finalized,
-            _ => GameState::Init
-        }
-    }
-}
+// impl From<u8> for CurrentStatus {
+//     fn from(num: u8) -> Self {
+//         match num {
+//             0 => CurrentStatus::Initialized,
+//             1 => CurrentStatus::Started,
+//             2 => CurrentStatus::GotFromPlayer2,
+//             3 => CurrentStatus::Finalized,
+//             _ => CurrentStatus::Init
+//         }
+//     }
+// }
+//
+// impl From<CurrentStatus> for u8 {
+//     fn from(state: CurrentStatus) -> Self {
+//         match state {
+//             CurrentStatus:: => 0,
+//             CurrentStatus::GotFromPlayer1 => 1,
+//             CurrentStatus::GotFromPlayer2 => 2,
+//             CurrentStatus::Finalized => 3
+//         }
+//     }
+// }
 
-impl From<GameState> for u8 {
-    fn from(state: GameState) -> Self {
-        match state {
-            GameState::Init => 0,
-            GameState::GotFromPlayer1 => 1,
-            GameState::GotFromPlayer2 => 2,
-            GameState::Finalized => 3
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct Player {
     name: String,
     address: Addr,
@@ -126,10 +113,7 @@ impl Player {
     /// Constructor function. Takes input parameters and initializes a struct containing both
     /// those items
     pub fn new(name: String, address: Addr) -> Player {
-        return Player {
-            name,
-            address
-        }
+        return Player { name, address };
     }
 
     /// Viewer function to read the private member of the Player struct.
@@ -139,7 +123,9 @@ impl Player {
         &self.name
     }
 
-    pub fn address(&self) -> &Addr {&self.address}
+    pub fn address(&self) -> &Addr {
+        &self.address
+    }
 }
 
 impl PartialEq for Player {
@@ -158,32 +144,14 @@ pub fn config_read(storage: &dyn Storage) -> ReadonlySingleton<State> {
 
 pub fn calculate_winner(p1: &RPS, p2: &RPS) -> GameResult {
     match (p1, p2) {
-        (RPS::Rock, RPS::Rock) => {
-            GameResult::Tie
-        },
-        (RPS::Rock, RPS::Paper) => {
-            GameResult::Player2
-        },
-        (RPS::Rock, RPS::Scissors) => {
-            GameResult::Player1
-        },
-        (RPS::Paper, RPS::Paper) => {
-            GameResult::Tie
-        },
-        (RPS::Paper, RPS::Rock) => {
-            GameResult::Player1
-        },
-        (RPS::Paper, RPS::Scissors) => {
-            GameResult::Player2
-        },
-        (RPS::Scissors, RPS::Scissors) => {
-            GameResult::Tie
-        },
-        (RPS::Scissors, RPS::Rock) => {
-            GameResult::Player2
-        },
-        (RPS::Scissors, RPS::Paper) => {
-            GameResult::Player1
-        }
+        (RPS::Rock, RPS::Rock) => GameResult::Tie,
+        (RPS::Rock, RPS::Paper) => GameResult::Player2,
+        (RPS::Rock, RPS::Scissors) => GameResult::Player1,
+        (RPS::Paper, RPS::Paper) => GameResult::Tie,
+        (RPS::Paper, RPS::Rock) => GameResult::Player1,
+        (RPS::Paper, RPS::Scissors) => GameResult::Player2,
+        (RPS::Scissors, RPS::Scissors) => GameResult::Tie,
+        (RPS::Scissors, RPS::Rock) => GameResult::Player2,
+        (RPS::Scissors, RPS::Paper) => GameResult::Player1,
     }
 }

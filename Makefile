@@ -49,11 +49,11 @@ schema:
 
 # Run local development chain with four funded accounts (named a, b, c, and d)
 .PHONY: start-server
-start-server: # CTRL+C to stop
+start-localsecret: # CTRL+C to stop
 	docker run -it --rm \
 		-p 26657:26657 -p 26656:26656 -p 1317:1317 -p 5000:5000 -p 9090:9090 -p 9091:9091 \
 		-v $$(pwd):/root/code \
-		--name secretdev ghcr.io/scrtlabs/localsecret:latest
+		--name secretdev ghcr.io/scrtlabs/localsecret:v1.4.0-for-debugging
 
 .PHONY: clean
 clean:

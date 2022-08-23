@@ -24,8 +24,13 @@ incremental = false
 overflow-checks = true
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
-cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
+cosmwasm-std = { path = "../cosmwasm/packages/std" }
+cosmwasm-storage = { path = "../cosmwasm/packages/storage" }
+cw-storage-plus = { version = "0.14.0", default-features = false }
 # secret-toolkit = "0.4.0"
 serde = { version = "=1.0.103", default-features = false, features = ["derive"] }
 thiserror = "1.0"
+
+[patch.crates-io]
+cosmwasm-std = { path = "../cosmwasm/packages/std" }
+

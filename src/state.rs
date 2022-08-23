@@ -1,10 +1,6 @@
-use cosmwasm_std::{Addr, Coin, Storage};
-
-use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
-
+use cosmwasm_std::{Addr, Coin, StdResult, Storage};
+use cw_storage_plus::Map;
 use serde::{Deserialize, Serialize};
-
-const CONFIG_KEY: &[u8] = b"config";
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum RPS {
@@ -134,12 +130,14 @@ impl PartialEq for Player {
     }
 }
 
-pub fn config(storage: &mut dyn Storage) -> Singleton<State> {
-    singleton(storage, CONFIG_KEY)
+pub fn save_game_state(storage: &mut dyn Storage, game: &str, state: State) -> StdResult<()> {
+    const GAME_STATE: Map<&[u8], State> = Map::new("game_state");
+    GAME_STATE.save(storage, game.as_bytes(), &state)
 }
 
-pub fn config_read(storage: &dyn Storage) -> ReadonlySingleton<State> {
-    singleton_read(storage, CONFIG_KEY)
+pub fn load_game_state(storage: &dyn Storage, game: &str) -> StdResult<State> {
+    const GAME_STATE: Map<&[u8], State> = Map::new("game_state");
+    GAME_STATE.load(storage, game.as_bytes())
 }
 
 pub fn calculate_winner(p1: &RPS, p2: &RPS) -> GameResult {

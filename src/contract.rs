@@ -6,18 +6,17 @@ use cosmwasm_std::{
 use crate::errors::CustomContractError;
 use crate::errors::CustomContractError::Std;
 use crate::msg::{CheckWinner, ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{config, config_read, CurrentStatus, GameResult, Player, State, RPS};
+use crate::state::{
+    load_game_state, save_game_state, CurrentStatus, GameResult, Player, State, RPS,
+};
 
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut,
+    _deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> StdResult<Response> {
-    let state = State::default();
-    config(deps.storage).save(&state)?;
-
     Ok(Response::default())
 }
 
@@ -34,7 +33,7 @@ pub fn execute(
             try_submit_choice(deps, info, env, game, choice)
         }
         ExecuteMsg::Finalize { game } => try_finalize(deps, env, game),
-        ExecuteMsg::JoinGame { game } => try_join(deps, info, game),
+        ExecuteMsg::JoinGame { name, game } => try_join(deps, info, name, game),
     }
 }
 
@@ -48,17 +47,23 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
 pub fn try_join(
     deps: DepsMut,
     info: MessageInfo,
+    name: String,
     game: String,
 ) -> Result<Response, CustomContractError> {
-    let mut state = config(deps.storage).load()?;
+    let mut state = load_game_state(deps.storage, &game)?;
 
-    if let Some(some_bet) = state.bet {
+    if let Some(some_bet) = &state.bet {
         if !info.funds.contains(&some_bet) {
-            return Err(CustomContractError::Std(StdError::generic_err(
+            return Err(Std(StdError::generic_err(
                 "Sent funds do not match the proposed bet",
             )));
         }
     }
+
+    state.players[1] = Some(Player::new(name, info.sender));
+    state.next();
+
+    save_game_state(deps.storage, &game, state)?;
 
     Ok(Response::new())
 }
@@ -68,7 +73,7 @@ pub fn try_finalize(
     env: Env,
     game: String,
 ) -> Result<Response, CustomContractError> {
-    let mut state = config(deps.storage).load()?;
+    let mut state = load_game_state(deps.storage, &game)?;
 
     match state.game_state.status {
         CurrentStatus::DoneGettingChoices => {}
@@ -110,7 +115,7 @@ pub fn try_finalize(
 
     state.next();
 
-    config(deps.storage).save(&state)?;
+    save_game_state(deps.storage, &game, state)?;
 
     // fuck this syntax
     Ok(Response::default().add_messages(messages))
@@ -123,7 +128,7 @@ pub fn try_submit_choice(
     game: String,
     choice: RPS,
 ) -> Result<Response, CustomContractError> {
-    let mut state = config(deps.storage).load()?;
+    let mut state = load_game_state(deps.storage, &game)?;
 
     match state.game_state.status {
         CurrentStatus::Started | CurrentStatus::Got1stChoice => {}
@@ -137,7 +142,7 @@ pub fn try_submit_choice(
         state.game_state.end_game_block = Some(env.block.height);
     }
 
-    config(deps.storage).save(&state)?;
+    save_game_state(deps.storage, &game, state)?;
 
     Ok(Response::new())
 }
@@ -162,6 +167,10 @@ fn _set_choice_for_player(
     Ok(())
 }
 
+fn get_random_game_id() -> String {
+    return "aaaa".to_string();
+}
+
 pub fn try_new_game(
     deps: DepsMut,
     info: MessageInfo,
@@ -169,6 +178,8 @@ pub fn try_new_game(
     name: String,
 ) -> Result<Response, CustomContractError> {
     let mut state = State::default();
+
+    let game = get_random_game_id();
 
     if let Some(some_bet) = bet {
         if !info.funds.contains(&some_bet) {
@@ -182,7 +193,7 @@ pub fn try_new_game(
     state.next();
     state.players[0] = Option::from(Player::new(name, info.sender));
 
-    config(deps.storage).save(&state)?;
+    save_game_state(deps.storage, &game, state)?;
 
     let resp = Response::new();
 
@@ -205,7 +216,7 @@ pub fn try_new_game(
 // }
 
 fn query_who_won(deps: Deps, env: Env, game: String) -> StdResult<CheckWinner> {
-    let state = config_read(deps.storage).load()?;
+    let state = load_game_state(deps.storage, &game)?;
 
     if state.game_state.status != CurrentStatus::Finalized {
         return Err(StdError::generic_err(

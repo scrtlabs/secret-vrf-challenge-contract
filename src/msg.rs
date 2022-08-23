@@ -1,6 +1,6 @@
+use crate::state::{GameResult, RPS};
 use cosmwasm_std::{Addr, Coin};
 use serde::{Deserialize, Serialize};
-use crate::state::{GameResult, RPS};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InstantiateMsg {}
@@ -9,10 +9,9 @@ pub struct InstantiateMsg {}
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     NewGame { bet: Option<Coin>, name: String },
-    JoinGame { game: String },
+    JoinGame { name: String, game: String },
     SubmitChoice { game: String, choice: RPS },
-    Finalize { game: String }
-    // Reset {},
+    Finalize { game: String }, // Reset {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -25,5 +24,5 @@ pub enum QueryMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct CheckWinner {
     pub winner: GameResult,
-    pub address: Option<Addr>
+    pub address: Option<Addr>,
 }

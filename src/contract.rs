@@ -3,9 +3,12 @@ use cosmwasm_std::{
     QueryResponse, Response, StdError, StdResult, Uint128,
 };
 
+use base32;
+
 use crate::errors::CustomContractError;
 use crate::errors::CustomContractError::Std;
 use crate::msg::{CheckWinner, ExecuteMsg, GameStateResponse, InstantiateMsg, QueryMsg};
+use crate::rng::Prng;
 use crate::state::{load_game_state, save_game_state, CurrentStatus, GameResult, Player, State, RPS, calculate_winner};
 
 #[entry_point]
@@ -26,7 +29,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, CustomContractError> {
     match msg {
-        ExecuteMsg::NewGame { bet, name } => try_new_game(deps, info, bet, name),
+        ExecuteMsg::NewGame { bet, name } => try_new_game(deps, env, info, bet, name),
         ExecuteMsg::SubmitChoice { game, choice } => {
             try_submit_choice(deps, info, env, game, choice)
         }
@@ -182,19 +185,37 @@ fn _set_choice_for_player(
 
 }
 
-fn get_random_game_id() -> String {
-    return "aaaa".to_string();
+fn get_random_game_id(env: &Env, info: &MessageInfo) -> String {
+
+    let mut seed_vec: Vec<u8> = vec![];
+
+    seed_vec.extend_from_slice(&env.block.height.to_be_bytes());
+    seed_vec.extend_from_slice(&info.sender.as_bytes());
+
+    let entropy = if let Some(tx) = &env.transaction {
+        tx.index.to_be_bytes()
+    } else {
+        [0u8; 4]
+    };
+
+    let mut rng = Prng::new(&env.block.height.to_be_bytes(), &entropy);
+
+    let rand = rng.rand_bytes();
+    let sub_slice = rand.split_at(5);
+    // we use base32 with crockford alphabet to produce a more human-readable string
+    return base32::encode(base32::Alphabet::Crockford, &sub_slice.0);
 }
 
 pub fn try_new_game(
     deps: DepsMut,
+    env: Env,
     info: MessageInfo,
     bet: Option<Coin>,
     name: String,
 ) -> Result<Response, CustomContractError> {
     let mut state = State::default();
 
-    let game = get_random_game_id();
+    let game = get_random_game_id(&env, &info);
 
     if let Some(some_bet) = bet {
         if !info.funds.contains(&some_bet) {
@@ -297,14 +318,14 @@ mod tests {
 
         let msg = InstantiateMsg {};
         let info = mock_info("creator", &coins(2, "token"));
-        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+        let _res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         let msg_player1 = ExecuteMsg::NewGame {
             bet: None,
             name: "alice".to_string(),
         };
         let res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player1).unwrap();
-        assert_eq!(&res.events[0].attributes[0].value, "aaaa");
+        assert_eq!(&res.events[0].attributes[0].value, "QTEBERJH");
 
         let game_id = res.events[0].attributes[0].value.clone();
 
@@ -333,14 +354,14 @@ mod tests {
 
         let msg = InstantiateMsg {};
         let info = mock_info("alice", &coins(2, "token"));
-        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        let _res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
         let msg_player1 = ExecuteMsg::NewGame {
             bet: None,
             name: "alice".to_string(),
         };
         let res = execute(deps.as_mut(), env.clone(), info.clone(), msg_player1).unwrap();
-        assert_eq!(&res.events[0].attributes[0].value, "aaaa");
+        assert_eq!(&res.events[0].attributes[0].value, "QTEBERJH");
 
         let game_id = res.events[0].attributes[0].value.clone();
 
@@ -375,7 +396,7 @@ mod tests {
         let msg_finalize = ExecuteMsg::Finalize {
             game: game_id.clone(),
         };
-        let res = execute(deps.as_mut(), env.clone(), info2.clone(), msg_finalize).unwrap();
+        let _res = execute(deps.as_mut(), env.clone(), info2.clone(), msg_finalize).unwrap();
 
 
 

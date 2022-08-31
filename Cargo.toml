@@ -27,8 +27,14 @@ overflow-checks = true
 cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
 cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
 cw-storage-plus = { version = "0.14.0", default-features = false }
-# secret-toolkit = "0.4.0"
-serde = { version = "=1.0.103", default-features = false, features = ["derive"] }
+
+rand_chacha = { version = "0.3.1", default-features = false }
+rand_core = { version = "0.6.3", default-features = false }
+sha2 = { version = "0.10.2" }
+
+base32 = "0.4.0"
+
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = "1.0"
 
 [patch.crates-io]

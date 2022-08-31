@@ -5,10 +5,8 @@ use cosmwasm_std::{
 
 use crate::errors::CustomContractError;
 use crate::errors::CustomContractError::Std;
-use crate::msg::{CheckWinner, ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{
-    load_game_state, save_game_state, CurrentStatus, GameResult, Player, State, RPS,
-};
+use crate::msg::{CheckWinner, ExecuteMsg, GameStateResponse, InstantiateMsg, QueryMsg};
+use crate::state::{load_game_state, save_game_state, CurrentStatus, GameResult, Player, State, RPS, calculate_winner};
 
 #[entry_point]
 pub fn instantiate(
@@ -41,6 +39,7 @@ pub fn execute(
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     match msg {
         QueryMsg::WhoWon { game } => to_binary(&query_who_won(deps, env, game)?),
+        QueryMsg::GameState { game } => to_binary(&query_game_state(deps, game)?),
     }
 }
 
@@ -50,6 +49,7 @@ pub fn try_join(
     name: String,
     game: String,
 ) -> Result<Response, CustomContractError> {
+    deps.api.debug(&format!("Player 2 - {:?} is joining the game", &info.sender));
     let mut state = load_game_state(deps.storage, &game)?;
 
     if let Some(some_bet) = &state.bet {
@@ -62,6 +62,8 @@ pub fn try_join(
 
     state.players[1] = Some(Player::new(name, info.sender));
     state.next();
+
+    deps.api.debug(&format!("Done. Current players: {:?}", &state.players));
 
     save_game_state(deps.storage, &game, state)?;
 
@@ -80,12 +82,13 @@ pub fn try_finalize(
         _ => return Err(Std(StdError::generic_err("Cannot finalize right now"))),
     }
 
-    if env.block.height > state.game_state.end_game_block.unwrap() {
+    if env.block.height < state.game_state.end_game_block.unwrap() {
         return Err(Std(StdError::generic_err("Cannot finalize right now")));
     }
 
     let mut messages = vec![];
 
+    // handle giving out the money
     if let (Some(bet), Some(winner)) = (&state.bet, &state.game_state.winner) {
         let winnings = Coin {
             denom: bet.denom.clone(),
@@ -109,7 +112,8 @@ pub fn try_finalize(
                     }));
                 }
             }
-            GameResult::Tie => {}
+            GameResult::Tie => {
+            }
         }
     }
 
@@ -128,7 +132,9 @@ pub fn try_submit_choice(
     game: String,
     choice: RPS,
 ) -> Result<Response, CustomContractError> {
+    deps.api.debug(&format!("Submitting choice {:?} for player {:?} ", &choice, &info.sender));
     let mut state = load_game_state(deps.storage, &game)?;
+    deps.api.debug(&format!("Current players: {:?}", &state.players));
 
     match state.game_state.status {
         CurrentStatus::Started | CurrentStatus::Got1stChoice => {}
@@ -136,10 +142,18 @@ pub fn try_submit_choice(
     }
 
     _set_choice_for_player(info, choice, &mut state)?;
-    state.game_state.status.next();
+    deps.api.debug(&format!("Done. Current choices: {:?}", &state.choices));
+    state.next();
 
     if state.game_state.status == CurrentStatus::DoneGettingChoices {
         state.game_state.end_game_block = Some(env.block.height);
+
+        if let (Some(choice1), Some(choice2)) = (&state.choices[0], &state.choices[1]) {
+            state.game_state.winner = Some(calculate_winner(choice1, choice2));
+            deps.api.debug(&format!("Winner is: {:?}", &state.game_state.winner));
+        } else {
+            panic!("Got choices but they weren't saved")
+        }
     }
 
     save_game_state(deps.storage, &game, state)?;
@@ -155,16 +169,17 @@ fn _set_choice_for_player(
     if let Some(player) = &state.players[0] {
         if &info.sender == player.address() {
             state.choices[0] = Some(choice);
+            return Ok(());
         }
-    } else if let Some(player) = &state.players[1] {
+    }
+    if let Some(player) = &state.players[1] {
         if &info.sender == player.address() {
             state.choices[1] = Some(choice);
+            return Ok(());
         }
-    } else {
-        return Err(Std(StdError::generic_err("Sender is not in this game")));
     }
+    Err(Std(StdError::generic_err("Sender is not in this game")))
 
-    Ok(())
 }
 
 fn get_random_game_id() -> String {
@@ -198,22 +213,19 @@ pub fn try_new_game(
     let resp = Response::new();
 
     let new_evt =
-        cosmwasm_std::Event::new("new_rps_game".to_string()).add_attribute("game_code", "AAAA");
+        cosmwasm_std::Event::new("new_rps_game".to_string()).add_attribute("game_code", game);
 
     Ok(resp.add_events(vec![new_evt]))
 }
 
-// pub fn try_reset(
-//     deps: DepsMut,
-// ) -> Result<Response, CustomContractError> {
-//     let mut state = config(deps.storage).load()?;
-//
-//     state.game_state = GameState::default();
-//     config(deps.storage).save(&state)?;
-//
-//     Ok(Response::new()
-//         .add_attribute("action", "reset state"))
-// }
+
+fn query_game_state(deps: Deps, game: String) -> StdResult<GameStateResponse> {
+    let state = load_game_state(deps.storage, &game).map_err(
+        |_| StdError::generic_err("Game with this ID not found")
+    )?;
+
+    return Ok(GameStateResponse { game, state: state.game_state.status })
+}
 
 fn query_who_won(deps: Deps, env: Env, game: String) -> StdResult<CheckWinner> {
     let state = load_game_state(deps.storage, &game)?;
@@ -224,7 +236,7 @@ fn query_who_won(deps: Deps, env: Env, game: String) -> StdResult<CheckWinner> {
         ));
     }
 
-    if state.game_state.end_game_block.unwrap_or(0) <= env.block.height {
+    if state.game_state.end_game_block.unwrap() > env.block.height {
         return Err(StdError::generic_err("Still processing results!"));
     }
 
@@ -264,8 +276,8 @@ fn query_who_won(deps: Deps, env: Env, game: String) -> StdResult<CheckWinner> {
 mod tests {
     use super::*;
 
-    use cosmwasm_std::coins;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::{coins, OwnedDeps};
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage};
 
     #[test]
     fn proper_instantialization() {
@@ -277,73 +289,144 @@ mod tests {
         // we can just call .unwrap() to assert this was a success
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
-
-        // it worked, let's query the state
-        let _ = query_who_won(deps.as_ref()).unwrap_err();
     }
 
     #[test]
-    fn solve_millionaire() {
+    fn new_game() {
         let mut deps = mock_dependencies();
 
         let msg = InstantiateMsg {};
         let info = mock_info("creator", &coins(2, "token"));
-        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
-        let msg_player1 = ExecuteMsg::SubmitNetWorth {
-            worth: 1,
+        let msg_player1 = ExecuteMsg::NewGame {
+            bet: None,
             name: "alice".to_string(),
         };
-        let msg_player2 = ExecuteMsg::SubmitNetWorth {
-            worth: 2,
-            name: "bob".to_string(),
-        };
+        let res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player1).unwrap();
+        assert_eq!(&res.events[0].attributes[0].value, "aaaa");
 
-        let info = mock_info("creator", &[]);
-
-        let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player1).unwrap();
-        let _res = execute(deps.as_mut(), mock_env(), info, msg_player2).unwrap();
+        let game_id = res.events[0].attributes[0].value.clone();
 
         // it worked, let's query the state
-        let value = query_who_won(deps.as_ref()).unwrap();
+        let unwrapped = _check_current_status(&deps, &game_id, CurrentStatus::WaitingForPlayerToJoin);
+        assert_eq!(unwrapped.game, game_id);
+    }
 
-        assert_eq!(&value.richer, "bob")
+    fn _check_current_status(deps: &OwnedDeps<MockStorage, MockApi, MockQuerier>, game_id: &String, expected: CurrentStatus) -> GameStateResponse {
+        let value = query_game_state(deps.as_ref(), game_id.clone());
+
+        if value.is_err() {
+            panic!("Game not found in storage");
+        }
+
+        let unwrapped = value.unwrap();
+
+        assert_eq!(&unwrapped.state, &expected);
+        unwrapped
     }
 
     #[test]
-    fn test_reset_state() {
+    fn full_game() {
         let mut deps = mock_dependencies();
+        let mut env = mock_env();
 
         let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(2, "token"));
-        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let info = mock_info("alice", &coins(2, "token"));
+        let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
-        let msg_player1 = ExecuteMsg::SubmitNetWorth {
-            worth: 1,
+        let msg_player1 = ExecuteMsg::NewGame {
+            bet: None,
             name: "alice".to_string(),
         };
+        let res = execute(deps.as_mut(), env.clone(), info.clone(), msg_player1).unwrap();
+        assert_eq!(&res.events[0].attributes[0].value, "aaaa");
 
-        let info = mock_info("creator", &[]);
-        let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player1).unwrap();
+        let game_id = res.events[0].attributes[0].value.clone();
 
-        let reset_msg = ExecuteMsg::Reset {};
-        let _res = execute(deps.as_mut(), mock_env(), info.clone(), reset_msg).unwrap();
-
-        let msg_player2 = ExecuteMsg::SubmitNetWorth {
-            worth: 2,
+        let msg_player2 = ExecuteMsg::JoinGame {
             name: "bob".to_string(),
-        };
-        let msg_player3 = ExecuteMsg::SubmitNetWorth {
-            worth: 3,
-            name: "carol".to_string(),
+            game: game_id.clone()
         };
 
-        let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player2).unwrap();
-        let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player3).unwrap();
+        let info2 = mock_info("bob", &coins(2, "token"));
+        let _res = execute(deps.as_mut(), env.clone(), info2.clone(), msg_player2).unwrap();
 
-        // it worked, let's query the state
-        let value = query_who_won(deps.as_ref()).unwrap();
+        let _ = _check_current_status(&deps, &game_id, CurrentStatus::Started);
 
-        assert_eq!(&value.richer, "carol")
+        let msg_action_p1 = ExecuteMsg::SubmitChoice {
+            game: game_id.clone(),
+            choice: RPS::Rock
+        };
+        let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg_action_p1).unwrap();
+
+        let _ = _check_current_status(&deps, &game_id, CurrentStatus::Got1stChoice);
+
+        let msg_action_p2 = ExecuteMsg::SubmitChoice {
+            game: game_id.clone(),
+            choice: RPS::Paper
+        };
+        let _res = execute(deps.as_mut(), env.clone(), info2.clone(), msg_action_p2).unwrap();
+
+        let _ = _check_current_status(&deps, &game_id, CurrentStatus::DoneGettingChoices);
+
+        env.block.height += 1;
+
+        let msg_finalize = ExecuteMsg::Finalize {
+            game: game_id.clone(),
+        };
+        let res = execute(deps.as_mut(), env.clone(), info2.clone(), msg_finalize).unwrap();
+
+
+
+        let winner = query_who_won(deps.as_ref(), env, game_id);
+
+        if winner.is_err() {
+            panic!("Winner not available");
+        }
+
+        let unwrapped = winner.unwrap();
+
+        assert_eq!(unwrapped.winner, GameResult::Player2);
+        assert_eq!(unwrapped.address, Some(cosmwasm_std::Addr::unchecked("bob")));
+
     }
+
+    //
+    // #[test]
+    // fn test_reset_state() {
+    //     let mut deps = mock_dependencies();
+    //
+    //     let msg = InstantiateMsg {};
+    //     let info = mock_info("creator", &coins(2, "token"));
+    //     let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    //
+    //     let msg_player1 = ExecuteMsg::SubmitNetWorth {
+    //         worth: 1,
+    //         name: "alice".to_string(),
+    //     };
+    //
+    //     let info = mock_info("creator", &[]);
+    //     let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player1).unwrap();
+    //
+    //     let reset_msg = ExecuteMsg::Reset {};
+    //     let _res = execute(deps.as_mut(), mock_env(), info.clone(), reset_msg).unwrap();
+    //
+    //     let msg_player2 = ExecuteMsg::SubmitNetWorth {
+    //         worth: 2,
+    //         name: "bob".to_string(),
+    //     };
+    //     let msg_player3 = ExecuteMsg::SubmitNetWorth {
+    //         worth: 3,
+    //         name: "carol".to_string(),
+    //     };
+    //
+    //     let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player2).unwrap();
+    //     let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player3).unwrap();
+    //
+    //     // it worked, let's query the state
+    //     let value = query_who_won(deps.as_ref()).unwrap();
+    //
+    //     assert_eq!(&value.richer, "carol")
+    // }
 }

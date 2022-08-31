@@ -1,6 +1,6 @@
 [package]
-name = "millionaire-problem"
-version = "0.0.0"
+name = "rock-paper-scissors"
+version = "1.0.0"
 authors = ["Itzik Grossman <itzik@scrtlabs.com>"]
 edition = "2021"
 publish = false
@@ -24,13 +24,13 @@ incremental = false
 overflow-checks = true
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", rev = "d90f207a05d1bc6203fc9214f682d53e0d5ae76a" }
-cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", rev = "d90f207a05d1bc6203fc9214f682d53e0d5ae76a" }
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
+cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
 cw-storage-plus = { version = "0.14.0", default-features = false }
 # secret-toolkit = "0.4.0"
 serde = { version = "=1.0.103", default-features = false, features = ["derive"] }
 thiserror = "1.0"
 
 [patch.crates-io]
-cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", rev = "d90f207a05d1bc6203fc9214f682d53e0d5ae76a" }
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
 

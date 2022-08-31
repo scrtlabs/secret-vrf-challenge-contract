@@ -27,11 +27,8 @@ pub struct GameState {
 impl State {
     pub fn next(&mut self) {
         // make sure to check the status before advancing it
-        if &self.game_state.status == &CurrentStatus::Got1stChoice {
-            if let (Some(choice1), Some(choice2)) = (&self.choices[0], &self.choices[1]) {
-                self.game_state.winner = Some(calculate_winner(choice1, choice2));
-            }
-        }
+        println!("{:?}", &self.game_state.status);
+
         self.game_state.status.next();
     }
 }
@@ -64,10 +61,6 @@ impl CurrentStatus {
             Self::Finalized => *self = Self::Started,
         }
     }
-
-    // fn reset(mut self) {
-    //     self = Self::Initialized;
-    // }
 }
 
 impl Default for CurrentStatus {
@@ -76,28 +69,6 @@ impl Default for CurrentStatus {
     }
 }
 
-// impl From<u8> for CurrentStatus {
-//     fn from(num: u8) -> Self {
-//         match num {
-//             0 => CurrentStatus::Initialized,
-//             1 => CurrentStatus::Started,
-//             2 => CurrentStatus::GotFromPlayer2,
-//             3 => CurrentStatus::Finalized,
-//             _ => CurrentStatus::Init
-//         }
-//     }
-// }
-//
-// impl From<CurrentStatus> for u8 {
-//     fn from(state: CurrentStatus) -> Self {
-//         match state {
-//             CurrentStatus:: => 0,
-//             CurrentStatus::GotFromPlayer1 => 1,
-//             CurrentStatus::GotFromPlayer2 => 2,
-//             CurrentStatus::Finalized => 3
-//         }
-//     }
-// }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct Player {

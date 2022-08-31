@@ -50,7 +50,7 @@ checksum = "e4c78c047431fee22c1a7bb92e00ad095a02a983affe4d8a72e2a2c62c1b94f3"
 [[package]]
 name = "cosmwasm-crypto"
 version = "1.0.0"
-source = "git+https://github.com/scrtlabs/cosmwasm?rev=d90f207a05d1bc6203fc9214f682d53e0d5ae76a#d90f207a05d1bc6203fc9214f682d53e0d5ae76a"
+source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#f7e2b1dbf11e113e258d796288752503a5012367"
 dependencies = [
  "digest",
  "ed25519-zebra",
@@ -62,7 +62,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-derive"
 version = "1.0.0"
-source = "git+https://github.com/scrtlabs/cosmwasm?rev=d90f207a05d1bc6203fc9214f682d53e0d5ae76a#d90f207a05d1bc6203fc9214f682d53e0d5ae76a"
+source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#f7e2b1dbf11e113e258d796288752503a5012367"
 dependencies = [
  "syn",
 ]
@@ -70,7 +70,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-std"
 version = "1.0.0"
-source = "git+https://github.com/scrtlabs/cosmwasm?rev=d90f207a05d1bc6203fc9214f682d53e0d5ae76a#d90f207a05d1bc6203fc9214f682d53e0d5ae76a"
+source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#f7e2b1dbf11e113e258d796288752503a5012367"
 dependencies = [
  "base64",
  "cosmwasm-crypto",
@@ -86,7 +86,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-storage"
 version = "1.0.0"
-source = "git+https://github.com/scrtlabs/cosmwasm?rev=d90f207a05d1bc6203fc9214f682d53e0d5ae76a#d90f207a05d1bc6203fc9214f682d53e0d5ae76a"
+source = "git+https://github.com/scrtlabs/cosmwasm?branch=secret#f7e2b1dbf11e113e258d796288752503a5012367"
 dependencies = [
  "cosmwasm-std",
  "serde",
@@ -323,17 +323,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320cfe77175da3a483efed4bc0adc1968ca050b098ce4f2f1c13a56626128790"
 
 [[package]]
-name = "millionaire-problem"
-version = "0.0.0"
-dependencies = [
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw-storage-plus",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -395,6 +384,17 @@ dependencies = [
  "crypto-bigint",
  "hmac",
  "zeroize",
+]
+
+[[package]]
+name = "rock-paper-scissors"
+version = "1.0.0"
+dependencies = [
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

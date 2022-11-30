@@ -3,6 +3,7 @@ use cw_storage_plus::Map;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum RPS {
     Rock,
     Paper,

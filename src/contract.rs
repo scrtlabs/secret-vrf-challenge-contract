@@ -53,24 +53,29 @@ pub fn try_join(
     game: String,
 ) -> Result<Response, CustomContractError> {
     deps.api.debug(&format!("Player 2 - {:?} is joining the game", &info.sender));
-    let mut state = load_game_state(deps.storage, &game)?;
+    let state_result = load_game_state(deps.storage, &game);
 
-    if let Some(some_bet) = &state.bet {
-        if !info.funds.contains(&some_bet) {
-            return Err(Std(StdError::generic_err(
-                "Sent funds do not match the proposed bet",
-            )));
-        }
+    match state_result {
+        Ok(mut state) => {
+            if let Some(some_bet) = &state.bet {
+                if !info.funds.contains(&some_bet) {
+                    return Err(Std(StdError::generic_err(
+                        "Sent funds do not match the proposed bet",
+                    )));
+                }
+            }
+        
+            state.players[1] = Some(Player::new(name, info.sender));
+            state.next();
+        
+            deps.api.debug(&format!("Done. Current players: {:?}", &state.players));
+        
+            save_game_state(deps.storage, &game, state)?;
+        
+            Ok(Response::new())            
+        },
+        _ => return Err(Std(StdError::generic_err("Game cannot be found")))
     }
-
-    state.players[1] = Some(Player::new(name, info.sender));
-    state.next();
-
-    deps.api.debug(&format!("Done. Current players: {:?}", &state.players));
-
-    save_game_state(deps.storage, &game, state)?;
-
-    Ok(Response::new())
 }
 
 pub fn try_finalize(
@@ -234,7 +239,7 @@ pub fn try_new_game(
     let resp = Response::new();
 
     let new_evt =
-        cosmwasm_std::Event::new("new_rps_game".to_string()).add_attribute("game_code", game);
+        cosmwasm_std::Event::new("new_rps_game".to_string()).add_attribute_plaintext("game_code", game);
 
     Ok(resp.add_events(vec![new_evt]))
 }

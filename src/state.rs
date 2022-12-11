@@ -1,8 +1,13 @@
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
+
 use cosmwasm_std::{Addr, Coin, StdResult, Storage};
 use cw_storage_plus::Map;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub static CONFIG_KEY: &[u8] = b"config";
+
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum RPS {
     Rock,
@@ -10,83 +15,82 @@ pub enum RPS {
     Scissors,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct State {
-    pub game_state: GameState,
-    pub players: [Option<Player>; 2],
-    pub choices: [Option<RPS>; 2],
+#[derive(Serialize, Deserialize, Clone, Debug, Default, JsonSchema)]
+pub struct RPSMatch {
+    pub meta: GameMetaInfo,
+    pub status: GameStatus,
+    pub players: [Player; 2],
     pub bet: Option<Coin>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
-pub struct GameState {
-    pub status: CurrentStatus,
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Default, JsonSchema)]
+pub struct GameMetaInfo {
     pub end_game_block: Option<u64>,
     pub winner: Option<GameResult>,
 }
 
-impl State {
-    pub fn next(&mut self) {
-        // make sure to check the status before advancing it
-        println!("{:?}", &self.game_state.status);
+#[derive(Serialize, Deserialize, Copy, PartialEq, Clone, Debug, JsonSchema)]
+pub enum GameStatus {
+    Initialized = 0,
+    WaitingForPlayerToJoin,
+    Started,
+    Got1stChoiceWaitingFor2nd,
+    Done,
+    WaitingForWinner,
+}
 
-        self.game_state.status.next();
+impl RPSMatch {
+    pub fn next(&mut self) {
+        match self.status {
+            GameStatus::Initialized => self.status = GameStatus::WaitingForPlayerToJoin,
+            GameStatus::WaitingForPlayerToJoin => self.status = GameStatus::Started,
+            GameStatus::Started => self.status = GameStatus::Got1stChoiceWaitingFor2nd,
+            GameStatus::Got1stChoiceWaitingFor2nd => self.status = GameStatus::Done,
+            GameStatus::Done => self.status = GameStatus::Initialized,
+            _ => {}
+        }
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+impl Default for GameStatus {
+    fn default() -> Self {
+        Self::Initialized
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Eq, Debug, JsonSchema)]
 pub enum GameResult {
     Player1,
     Player2,
     Tie,
 }
 
-#[derive(Serialize, Deserialize, Copy, PartialEq, Clone, Debug)]
-pub enum CurrentStatus {
-    Initialized = 0,
-    WaitingForPlayerToJoin,
-    Started,
-    Got1stChoice,
-    DoneGettingChoices,
-    Finalized,
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, JsonSchema)]
+pub struct Player {
+    name: String,
+    address: Addr,
+    pub choice: Option<RPS>,
 }
 
-impl CurrentStatus {
-    pub(crate) fn next(&mut self) {
-        match self {
-            Self::Initialized => *self = Self::WaitingForPlayerToJoin,
-            Self::WaitingForPlayerToJoin => *self = Self::Started,
-            Self::Started => *self = Self::Got1stChoice,
-            Self::Got1stChoice => *self = Self::DoneGettingChoices,
-            Self::DoneGettingChoices => *self = Self::Finalized,
-            Self::Finalized => *self = Self::Started,
+impl Default for Player {
+    fn default() -> Self {
+        Self {
+            name: "".to_string(),
+            address: Addr::unchecked("".to_string()),
+            choice: None,
         }
     }
 }
 
-impl Default for CurrentStatus {
-    fn default() -> Self {
-        Self::Initialized
-    }
-}
-
-
-#[derive(Serialize, Deserialize, Clone, Debug, Eq)]
-pub struct Player {
-    name: String,
-    address: Addr,
-}
-
 impl Player {
-    /// Constructor function. Takes input parameters and initializes a struct containing both
-    /// those items
     pub fn new(name: String, address: Addr) -> Player {
-        return Player { name, address };
+        return Player {
+            name,
+            address,
+            choice: None,
+        };
     }
 
-    /// Viewer function to read the private member of the Player struct.
-    /// We could make the member public instead and access it directly if we wanted to simplify
-    /// access patterns
     pub fn name(&self) -> &String {
         &self.name
     }
@@ -102,13 +106,13 @@ impl PartialEq for Player {
     }
 }
 
-pub fn save_game_state(storage: &mut dyn Storage, game: &str, state: State) -> StdResult<()> {
-    const GAME_STATE: Map<&[u8], State> = Map::new("game_state");
+pub fn save_match_info(storage: &mut dyn Storage, game: &str, state: RPSMatch) -> StdResult<()> {
+    const GAME_STATE: Map<&[u8], RPSMatch> = Map::new("game_state");
     GAME_STATE.save(storage, game.as_bytes(), &state)
 }
 
-pub fn load_game_state(storage: &dyn Storage, game: &str) -> StdResult<State> {
-    const GAME_STATE: Map<&[u8], State> = Map::new("game_state");
+pub fn load_match_info(storage: &dyn Storage, game: &str) -> StdResult<RPSMatch> {
+    const GAME_STATE: Map<&[u8], RPSMatch> = Map::new("game_state");
     GAME_STATE.load(storage, game.as_bytes())
 }
 

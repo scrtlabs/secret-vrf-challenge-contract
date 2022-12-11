@@ -34,7 +34,7 @@ build-mainnet-reproducible:
 	docker run --rm -v "$$(pwd)":/contract \
 		--mount type=volume,source="$$(basename "$$(pwd)")_cache",target=/contract/target \
 		--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-		enigmampc/secret-contract-optimizer:1.0.8
+		ghcr.io/scrtlabs/localsecret:v1.6.0-rc.3
 
 .PHONY: compress-wasm
 compress-wasm:
@@ -49,11 +49,23 @@ schema:
 
 # Run local development chain with four funded accounts (named a, b, c, and d)
 .PHONY: start-server
-start-localsecret: # CTRL+C to stop
+start-server: # CTRL+C to stop
 	docker run -it --rm \
-		-p 26657:26657 -p 26656:26656 -p 1317:1317 -p 5000:5000 -p 9090:9090 -p 9091:9091 \
+		-p 9091:9091 -p 26657:26657 -p 26656:26656 -p 1317:1317 -p 5000:5000 \
 		-v $$(pwd):/root/code \
-		--name secretdev ghcr.io/scrtlabs/localsecret:v1.4.0-for-debugging
+		--name secretdev ghcr.io/scrtlabs/localsecret:v1.6.0-rc.3
+
+# This relies on running `start-server` in another console
+# You can run other commands on the secretcli inside the dev image
+# by using `docker exec secretdev secretcli`.
+.PHONY: store-contract-local
+store-contract-local:
+	docker exec secretdev secretcli tx compute store -y --from a --gas 5000000 /root/code/contract.wasm.gz
+
+.PHONY: intantiate-local
+instantiate-local:
+	docker exec secretdev secretcli tx compute instantiate 1 '{}' -y  --from a --gas 5000000 --label yo
+
 
 .PHONY: clean
 clean:

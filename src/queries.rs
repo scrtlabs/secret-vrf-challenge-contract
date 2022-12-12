@@ -30,7 +30,7 @@ pub fn query_who_won(deps: Deps, env: Env, game: String) -> StdResult<CheckWinne
         ));
     }
 
-    if state.meta.end_game_block.unwrap() > env.block.height {
+    if state.meta.end_game_block.unwrap() + 1 > env.block.height{
         return Err(StdError::generic_err("Still processing results!"));
     }
 

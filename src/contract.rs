@@ -58,6 +58,7 @@ mod tests {
 
     fn _check_current_status(
         deps: &OwnedDeps<MockStorage, MockApi, MockQuerier>,
+        env: Env,
         game_id: &String,
         expected: GameStatus,
     ) -> GameStateResponse {
@@ -83,6 +84,7 @@ mod tests {
     #[test]
     fn new_game() {
         let mut deps = mock_dependencies();
+        let env = mock_env();
 
         let info = instantiate_contract(deps.as_mut());
 
@@ -98,7 +100,7 @@ mod tests {
         let game_id = res.events[0].attributes[0].value.clone();
 
         // it worked, let's query the state and check that we're waiting for the 2nd player to join
-        let unwrapped = _check_current_status(&deps, &game_id, GameStatus::WaitingForPlayerToJoin);
+        let unwrapped = _check_current_status(&deps, env, &game_id, GameStatus::WaitingForPlayerToJoin);
         assert_eq!(unwrapped.game, game_id);
     }
 
@@ -127,7 +129,7 @@ mod tests {
         let info2 = mock_info("bob", &coins(2, "token"));
         let _res = execute(deps.as_mut(), env.clone(), info2.clone(), msg_player2).unwrap();
 
-        let _ = _check_current_status(&deps, &game_id, GameStatus::Started);
+        let _ = _check_current_status(&deps, env.clone(), &game_id, GameStatus::Started);
 
         let msg_action_p1 = ExecuteMsg::SubmitChoice {
             game_code: game_id.clone(),
@@ -135,7 +137,7 @@ mod tests {
         };
         let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg_action_p1).unwrap();
 
-        let _ = _check_current_status(&deps, &game_id, GameStatus::Got1stChoiceWaitingFor2nd);
+        let _ = _check_current_status(&deps, env.clone(), &game_id, GameStatus::Got1stChoiceWaitingFor2nd);
 
         let msg_action_p2 = ExecuteMsg::SubmitChoice {
             game_code: game_id.clone(),
@@ -143,7 +145,7 @@ mod tests {
         };
         let _res = execute(deps.as_mut(), env.clone(), info2.clone(), msg_action_p2).unwrap();
 
-        let _ = _check_current_status(&deps, &game_id, GameStatus::Done);
+        let _ = _check_current_status(&deps, env.clone(), &game_id, GameStatus::WaitingForWinner);
 
         env.block.height += 1;
 

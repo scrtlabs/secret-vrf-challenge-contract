@@ -131,16 +131,20 @@ async function initializeAndUploadContract() {
   let chainId = "secretdev-1";
 
   const client = await initializeClient(endpoint, chainId);
+  // we'll need 2 players for the game
+  const client2 = await initializeClient(endpoint, chainId);
 
   await fillUpFromFaucet(client, 100_000_000);
+  await fillUpFromFaucet(client2, 100_000_000);
 
   const [contractHash, contractAddress] = await initializeContract(
     client,
     "contract.wasm"
   );
 
-  var clientInfo: [SecretNetworkClient, string, string] = [
+  var clientInfo: [SecretNetworkClient, SecretNetworkClient, string, string] = [
     client,
+      client2,
     contractHash,
     contractAddress,
   ];
@@ -158,7 +162,7 @@ async function queryGameState(
   const countResponse = (await client.query.compute.queryContract({
     contract_address: contractAddress,
     code_hash: contractHash,
-    query: { game_code: gameCode },
+    query: { game_state: { game: gameCode } },
   })) as GameStateResponse;
 
   if ('err"' in countResponse) {
@@ -210,8 +214,8 @@ async function test_query_initial_status(
       gameCode
   );
   assert(
-      result === "Initialized",
-    `Status was ${result}, even though the game should not have started yet"`
+      result === "WaitingForPlayerToJoin",
+    `Status was ${result}, even though the game should be waiting for 2nd player"`
   );
 }
 
@@ -240,37 +244,34 @@ async function test_initialize_game(
       gameCode !== "",
     `Didn't get a new game code! This is the tx response: ${JSON.stringify(tx)}`
   );
+
+  return gameCode;
 }
 
 async function test_gas_limits() {
   // There is no accurate way to measue gas limits but it is actually very recommended to make sure that the gas that is used by a specific tx makes sense
 }
 
-async function runTestFunction(tester: CallableFunction) {
+async function runTestFunction<R>(tester: CallableFunction): Promise<R> {
   // @ts-ignore
   console.log(`Testing ${tester.name}`);
-  await tester();
+  let resp: R = await tester();
   // @ts-ignore
   console.log(`[SUCCESS] ${tester.name}`);
+
+  return resp;
 }
 
 (async () => {
-  const [client, contractHash, contractAddress] =
+  const [client, client2, contractHash, contractAddress] =
     await initializeAndUploadContract();
 
-  await runTestFunction(
-      test_initialize_game.bind(client, contractHash, contractAddress),
+  let gameCode = await runTestFunction<string>(
+      test_initialize_game.bind(this, client, contractHash, contractAddress),
   );
 
   await runTestFunction(
-    test_query_initial_status.bind(client, contractHash, contractAddress, "aaa"),
+    test_query_initial_status.bind(this, client, contractHash, contractAddress, gameCode),
   );
-  //
-  // await runTestFunction(
-  //   test_increment_stress,
-  //   client,
-  //   contractHash,
-  //   contractAddress
-  // );
-  // await runTestFunction(test_gas_limits, client, contractHash, contractAddress);
+
 })();

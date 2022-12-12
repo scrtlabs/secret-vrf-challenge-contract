@@ -246,12 +246,12 @@ async function test_gas_limits() {
   // There is no accurate way to measue gas limits but it is actually very recommended to make sure that the gas that is used by a specific tx makes sense
 }
 
-const runTestFunction = async (tester: CallableFunction) => {
+async function runTestFunction(tester: CallableFunction) {
   // @ts-ignore
-  console.log(`Testing ${tester.toString()}`);
+  console.log(`Testing ${tester.name}`);
   await tester();
   // @ts-ignore
-  console.log(`[SUCCESS] ${tester.toString()}`);
+  console.log(`[SUCCESS] ${tester.name}`);
 }
 
 (async () => {

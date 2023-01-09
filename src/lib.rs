@@ -1,7 +1,8 @@
 pub mod contract;
 mod errors;
-mod executes;
+// mod executes;
 pub mod msg;
-mod queries;
-mod random;
+// mod queries;
 pub mod state;
+pub mod rng;
+mod secp256k1;

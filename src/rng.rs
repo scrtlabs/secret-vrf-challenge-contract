@@ -1,10 +1,30 @@
 use rand_chacha::ChaChaRng;
-use rand_core::{RngCore, SeedableRng};
+use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
 use sha2::{Digest, Sha256};
 
 pub struct Prng {
     rng: ChaChaRng,
 }
+
+impl RngCore for Prng {
+    fn next_u32(&mut self) -> u32 {
+        self.rng.next_u32()
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.rng.next_u64()
+    }
+
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        self.rng.fill_bytes(dest)
+    }
+
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+        self.rng.try_fill_bytes(dest)
+    }
+}
+
+impl CryptoRng for Prng {}
 
 impl Prng {
     pub fn new(seed: &[u8], entropy: &[u8]) -> Self {

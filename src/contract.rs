@@ -3,10 +3,8 @@ use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
 };
 
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-
-use crate::executes::{try_join, try_new_game, try_submit_choice};
-use crate::queries::{query_game_state, query_who_won};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReadShareResponse};
+use crate::rng::Prng;
 
 #[entry_point]
 pub fn instantiate(
@@ -15,6 +13,9 @@ pub fn instantiate(
     _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> StdResult<Response> {
+
+    // save init params to state
+
     Ok(Response::default())
 }
 
@@ -26,22 +27,69 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, CustomContractError> {
     match msg {
-        ExecuteMsg::NewGame { player_name, bet } => try_new_game(deps, env, info, bet, player_name),
-        ExecuteMsg::JoinGame {
-            game_code,
-            player_name,
-        } => try_join(deps, info, player_name, game_code),
-        ExecuteMsg::SubmitChoice { game_code, choice } => {
-            try_submit_choice(deps, info, env, game_code, choice)
-        }
+        ExecuteMsg::CreateShare { public_key, shares, user_index } =>
+            sss(deps, env, public_key, shares, user_index)
+    }
+}
+
+fn sss(deps: DepsMut, env: Env, public_key: String, shares: Vec<String>, user_index: u32) -> Result<Response, CustomContractError> {
+
+    // convert public key to EC Point
+    // convert each of the shares to EC Scalar (?)
+
+    // generate new secp256k1 private/public
+
+    // compute <public user> + <public contract>
+
+    // split <contract private key> into a bunch of pieces using shamir secret sharing
+
+    // for each party:
+
+    // // save a share of the split private key and the input shares for each of the users?
+
+    // save the generated shares and input shares in state
+
+
+    // example of secret sharing that doesn't work in wasm:
+
+    // use vsss_rs::Shamir;
+    // use k256::elliptic_curve::PrimeField;
+    // use k256::{NonZeroScalar, Scalar, SecretKey};
+    // // use rand::rngs::OsRng;
+    //
+    // let mut osrng = Prng::new(b"lol", b"lol");
+    // let sk = SecretKey::random(&mut osrng);
+    // let nzs = sk.to_nonzero_scalar();
+    // let res = Shamir::<2, 3>::split_secret::<Scalar, Prng, 33>(*nzs.as_ref(), &mut osrng);
+    // assert!(res.is_ok());
+    // let shares = res.unwrap();
+    // let res = Shamir::<2, 3>::combine_shares::<Scalar, 33>(&shares);
+    // assert!(res.is_ok());
+    // let scalar = res.unwrap();
+    // let nzs_dup = NonZeroScalar::from_repr(scalar.to_repr()).unwrap();
+    // let sk_dup = SecretKey::from(nzs_dup);
+    // assert_eq!(sk_dup.to_be_bytes(), sk.to_be_bytes());
+
+    Ok(Response::default())
+}
+
+
+fn read_share(deps: Deps, env: Env, user_index: u32) -> ReadShareResponse {
+    // todo: authentication
+
+    // read the shares from state
+
+    return ReadShareResponse {
+        user_share: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
+        chain_share: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
+        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string()
     }
 }
 
 #[entry_point]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::WhoWon { game } => to_binary(&query_who_won(deps, env, game)?),
-        QueryMsg::GameState { game } => to_binary(&query_game_state(deps, env, game)?),
+        QueryMsg::ReadShare { user_index } => to_binary(&query_who_won(deps, env, game)?),
     }
 }
 
@@ -55,24 +103,6 @@ mod tests {
         mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage,
     };
     use cosmwasm_std::{coins, OwnedDeps};
-
-    fn _check_current_status(
-        deps: &OwnedDeps<MockStorage, MockApi, MockQuerier>,
-        env: Env,
-        game_id: &String,
-        expected: GameStatus,
-    ) -> GameStateResponse {
-        let value = query_game_state(deps.as_ref(), env, game_id.clone());
-
-        if value.is_err() {
-            panic!("Game not found in storage");
-        }
-
-        let unwrapped = value.unwrap();
-
-        assert_eq!(&unwrapped.state, &expected);
-        unwrapped
-    }
 
     fn instantiate_contract(deps: DepsMut) -> MessageInfo {
         let msg = InstantiateMsg {};
@@ -88,79 +118,19 @@ mod tests {
 
         let info = instantiate_contract(deps.as_mut());
 
-        let msg_player1 = ExecuteMsg::NewGame {
-            player_name: "alice".to_string(),
-            bet: None,
-        };
-
-        // test new game returns a valid game ID
-        let res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player1).unwrap();
-        assert_eq!(&res.events[0].attributes[0].value, "QTEBERJH");
-
-        let game_id = res.events[0].attributes[0].value.clone();
-
-        // it worked, let's query the state and check that we're waiting for the 2nd player to join
-        let unwrapped = _check_current_status(&deps, env, &game_id, GameStatus::WaitingForPlayerToJoin);
-        assert_eq!(unwrapped.game, game_id);
-    }
-
-    #[test]
-    fn full_game() {
-        let mut deps = mock_dependencies();
-        let mut env = mock_env();
-
-        let info = instantiate_contract(deps.as_mut());
-
-        let msg_player1 = ExecuteMsg::NewGame {
-            bet: None,
-            player_name: "alice".to_string(),
-        };
-        let res = execute(deps.as_mut(), env.clone(), info.clone(), msg_player1).unwrap();
-
-        assert_eq!(&res.events[0].attributes[0].value, "QTEBERJH");
-
-        let game_id = res.events[0].attributes[0].value.clone();
-
-        let msg_player2 = ExecuteMsg::JoinGame {
-            player_name: "bob".to_string(),
-            game_code: game_id.clone(),
-        };
-
-        let info2 = mock_info("bob", &coins(2, "token"));
-        let _res = execute(deps.as_mut(), env.clone(), info2.clone(), msg_player2).unwrap();
-
-        let _ = _check_current_status(&deps, env.clone(), &game_id, GameStatus::Started);
-
-        let msg_action_p1 = ExecuteMsg::SubmitChoice {
-            game_code: game_id.clone(),
-            choice: RPS::Rock,
-        };
-        let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg_action_p1).unwrap();
-
-        let _ = _check_current_status(&deps, env.clone(), &game_id, GameStatus::Got1stChoiceWaitingFor2nd);
-
-        let msg_action_p2 = ExecuteMsg::SubmitChoice {
-            game_code: game_id.clone(),
-            choice: RPS::Paper,
-        };
-        let _res = execute(deps.as_mut(), env.clone(), info2.clone(), msg_action_p2).unwrap();
-
-        let _ = _check_current_status(&deps, env.clone(), &game_id, GameStatus::WaitingForWinner);
-
-        env.block.height += 1;
-
-        let winner = query_who_won(deps.as_ref(), env, game_id);
-
-        if winner.is_err() {
-            panic!("Winner not available");
-        }
-
-        let unwrapped = winner.unwrap();
-
-        assert_eq!(unwrapped.winner, GameResult::Player2);
-        assert_eq!(
-            unwrapped.address,
-            Some(cosmwasm_std::Addr::unchecked("bob"))
-        );
+        // let msg_player1 = ExecuteMsg::NewGame {
+        //     player_name: "alice".to_string(),
+        //     bet: None,
+        // };
+        //
+        // // test new game returns a valid game ID
+        // let res = execute(deps.as_mut(), mock_env(), info.clone(), msg_player1).unwrap();
+        // assert_eq!(&res.events[0].attributes[0].value, "QTEBERJH");
+        //
+        // let game_id = res.events[0].attributes[0].value.clone();
+        //
+        // // it worked, let's query the state and check that we're waiting for the 2nd player to join
+        // let unwrapped = _check_current_status(&deps, env, &game_id, GameStatus::WaitingForPlayerToJoin);
+        // assert_eq!(unwrapped.game, game_id);
     }
 }

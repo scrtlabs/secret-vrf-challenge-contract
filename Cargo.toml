@@ -36,8 +36,8 @@ schema = ["cosmwasm-schema"]
 [dependencies]
 serde = { version = "1.0.147", default-features = false, features = ["derive"] }
 schemars = "0.8.11"
-cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret-cw1.1", package = "secret-cosmwasm-std" }
-cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret-cw1.1", package = "secret-cosmwasm-storage" }
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "random", features = ["random"], package = "secret-cosmwasm-std" }
+cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "random", package = "secret-cosmwasm-storage" }
 #cw-storage-plus = { version = "0.14.0", default-features = false }
 
 # Used only for schema generation
@@ -53,14 +53,14 @@ thiserror = "1.0"
 rand_core = { version = "0.6.4", default-features = false }
 rand_chacha = { version = "0.3.1", default-features = false }
 
-vsss-rs = { version = "2.3.2", default-features = false, features = ["secp256k1"]}
-
-k256 = { version = "0.11", default-features = false }
-# ff = "0.13.0"
-#generic-array = "0.12"
-#ff = "0.13.0"
-rand = { version = "0.8.5", default-features = false }
-sha2 = "0.10.6"
+#vsss-rs = { version = "2.3.2", default-features = false, features = ["secp256k1"]}
+#
+#k256 = { version = "0.11", default-features = false }
+## ff = "0.13.0"
+##generic-array = "0.12"
+##ff = "0.13.0"
+#rand = { version = "0.8.5", default-features = false }
+#sha2 = "0.10.6"
 #
 #ursa_sharing = { version = "0.1.0", git = "https://github.com/hyperledger/ursa"}
 

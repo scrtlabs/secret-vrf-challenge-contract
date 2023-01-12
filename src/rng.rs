@@ -7,6 +7,13 @@ pub struct Prng {
 }
 
 impl RngCore for Prng {
+
+    // fn rand_range(&mut self, min: u32, max: u32) -> u32 {
+    //     while {
+    //         self.rng.next_u32()
+    //     }
+    // }
+
     fn next_u32(&mut self) -> u32 {
         self.rng.next_u32()
     }
@@ -27,7 +34,7 @@ impl RngCore for Prng {
 impl CryptoRng for Prng {}
 
 impl Prng {
-    pub fn new(seed: &[u8], entropy: &[u8]) -> Self {
+    pub fn new(seed: &[u8]) -> Self {
         let mut hasher = Sha256::new();
 
         // write input message

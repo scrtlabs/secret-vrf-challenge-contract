@@ -2,6 +2,7 @@ use crate::errors::CustomContractError;
 use cosmwasm_std::{
     entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
 };
+use rand_core::RngCore;
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReadShareResponse};
 use crate::rng::Prng;
@@ -27,48 +28,53 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, CustomContractError> {
     match msg {
-        ExecuteMsg::CreateShare { public_key, shares, user_index } =>
-            sss(deps, env, public_key, shares, user_index)
+        ExecuteMsg::Bet { guess: u32 } =>
+            bet(deps, env, info, guess: u32)
     }
 }
 
-fn sss(deps: DepsMut, env: Env, public_key: String, shares: Vec<String>, user_index: u32) -> Result<Response, CustomContractError> {
-
-    // convert public key to EC Point
-    // convert each of the shares to EC Scalar (?)
-
-    // generate new secp256k1 private/public
-
-    // compute <public user> + <public contract>
-
-    // split <contract private key> into a bunch of pieces using shamir secret sharing
-
-    // for each party:
-
-    // // save a share of the split private key and the input shares for each of the users?
-
-    // save the generated shares and input shares in state
 
 
-    // example of secret sharing that doesn't work in wasm:
+const Table = vec![
 
-    // use vsss_rs::Shamir;
-    // use k256::elliptic_curve::PrimeField;
-    // use k256::{NonZeroScalar, Scalar, SecretKey};
-    // // use rand::rngs::OsRng;
-    //
-    // let mut osrng = Prng::new(b"lol", b"lol");
-    // let sk = SecretKey::random(&mut osrng);
-    // let nzs = sk.to_nonzero_scalar();
-    // let res = Shamir::<2, 3>::split_secret::<Scalar, Prng, 33>(*nzs.as_ref(), &mut osrng);
-    // assert!(res.is_ok());
-    // let shares = res.unwrap();
-    // let res = Shamir::<2, 3>::combine_shares::<Scalar, 33>(&shares);
-    // assert!(res.is_ok());
-    // let scalar = res.unwrap();
-    // let nzs_dup = NonZeroScalar::from_repr(scalar.to_repr()).unwrap();
-    // let sk_dup = SecretKey::from(nzs_dup);
-    // assert_eq!(sk_dup.to_be_bytes(), sk.to_be_bytes());
+];
+
+enum GameResult {
+    Color,
+    OddOrEven,
+    Line,
+    Corner,
+    Dozens,
+    Thirds,
+    HighOrLow,
+    Exact,
+    Lose
+}
+
+fn check_win(guess: u32, result: u32) -> GameResult {
+    if result == 0 {
+        return GameResult::Lose
+    }
+
+    if guess == result {
+        return GameResult::Exact
+    }
+
+    if
+
+    GameResult::Lose
+}
+
+fn bet(deps: DepsMut, env: Env, info: MessageInfo, guess: u32) -> Result<Response, CustomContractError> {
+
+    let r: Binary = info.random;
+
+    let mut prng = Prng::new(r.as_slice());
+
+    // this is probably fine since the modulo bias is super small
+    let x = prng.next_u32() % 37;
+
+
 
     Ok(Response::default())
 }

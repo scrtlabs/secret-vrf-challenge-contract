@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Wallet, SecretNetworkClient, TxResponse } from "secretjs";
+import {Wallet, SecretNetworkClient, TxResponse, fromBase64} from "secretjs";
 import fs from "fs";
 import assert from "assert";
 
@@ -142,9 +142,9 @@ async function initializeAndUploadContract() {
     "contract.wasm"
   );
 
-  var clientInfo: [SecretNetworkClient, SecretNetworkClient, string, string] = [
+  const clientInfo: [SecretNetworkClient, SecretNetworkClient, string, string] = [
     client,
-      client2,
+    client2,
     contractHash,
     contractAddress,
   ];
@@ -179,16 +179,14 @@ async function initializeGame(
   client: SecretNetworkClient,
   contractHash: string,
   contractAddess: string
-) {
+): Promise<TxResponse> {
   const tx: TxResponse = await client.tx.compute.executeContract(
     {
       sender: client.address,
       contract_address: contractAddess,
       code_hash: contractHash,
-      msg: {
-        new_game: { player_name: "alice" },
-      },
-      sent_funds: [],
+      msg: {bet: {bets: [{result: {exact: {num: 31}}, amount: {denom: "uscrt", amount: "1000"}}]}},
+      sent_funds: [{denom: "uscrt", amount: "1000"}],
     },
     {
       gasLimit: 200000,
@@ -224,21 +222,17 @@ async function test_initialize_game(
   contractHash: string,
   contractAddress: string
 ) {
-  let tx = await initializeGame(client, contractHash, contractAddress);
+  let tx: TxResponse = await initializeGame(client, contractHash, contractAddress);
 
   let gameCode = ""
   for (const k in tx.jsonLog[0].events) {
     console.log(tx.jsonLog[0].events[k].type)
-    if (tx.jsonLog[0].events[k].type.toLocaleLowerCase() === 'wasm-new_rps_game') {
-      for (const attrIdx in tx.jsonLog[0].events[k].attributes) {
-        if (tx.jsonLog[0].events[k].attributes[attrIdx].key.toLocaleLowerCase() === 'game_code') {
-          gameCode = tx.jsonLog[0].events[k].attributes[attrIdx].value
-        }
-      }
+    if (tx.jsonLog[0].events[k].type.toLocaleLowerCase() === 'wasm-wasm-roulette_result') {
+      gameCode = tx.jsonLog[0].events[k].attributes[1].value;
     }
   }
 
-  console.log(`Got game code: ${gameCode}`)
+  console.log(`Got result: ${gameCode}`)
 
   assert(
       gameCode !== "",
@@ -270,8 +264,8 @@ async function runTestFunction<R>(tester: CallableFunction): Promise<R> {
       test_initialize_game.bind(this, client, contractHash, contractAddress),
   );
 
-  await runTestFunction(
-    test_query_initial_status.bind(this, client, contractHash, contractAddress, gameCode),
-  );
+  // await runTestFunction(
+  //   test_query_initial_status.bind(this, client, contractHash, contractAddress, gameCode),
+  // );
 
 })();

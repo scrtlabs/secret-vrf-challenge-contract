@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, Coin};
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use crate::types::Bet;

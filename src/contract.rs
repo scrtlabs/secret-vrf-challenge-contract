@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use cosmwasm_std::{entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Coin, Uint128, StdError, BankMsg, Event};
+use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Coin, Uint128, StdError, BankMsg, Event};
 use rand_core::RngCore;
-use crate::contract::GameResult::Corner;
+
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::rng::Prng;
@@ -177,7 +177,7 @@ fn check_coins_match_input(coins: HashMap<String, Uint128>, sent_funds: Vec<Coin
         }
     }
 
-    return true;
+    true
 }
 
 fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>) -> Result<Response, StdError> {
@@ -229,14 +229,14 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
         payouts.entry(win_bet.amount.denom).and_modify(|amount| *amount += payout_amount).or_insert(payout_amount);
     }
 
-    let coins_to_send: Vec<Coin> = payouts.iter().map(|payout| Coin { denom: payout.0.to_string(), amount: payout.1.clone() }).collect();
+    let coins_to_send: Vec<Coin> = payouts.iter().map(|payout| Coin { denom: payout.0.to_string(), amount: *payout.1 }).collect();
 
     let resp = Response::new().add_event(Event::new("wasm-roulette_result").add_attribute_plaintext(
         "result", result.to_string()
     ));
 
-    if coins_to_send.len() > 0 {
-        deps.api.debug(&format!("payouts to send: {:?}", coins_to_send.clone()));
+    if !coins_to_send.is_empty() {
+        deps.api.debug(&format!("payouts to send: {:?}", coins_to_send));
 
         let msg = BankMsg::Send { to_address: info.sender.to_string(), amount: coins_to_send };
 
@@ -248,7 +248,7 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
 
 
 #[entry_point]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(_deps: Deps, _env: Env, _msg: QueryMsg) -> StdResult<Binary> {
     Ok(Binary::default())
 }
 
@@ -264,17 +264,10 @@ mod tests {
 
     /// Just set sender and funds for the message.
     /// This is intended for use in test code only.
-    pub fn mock_info_random(sender: &str, funds: &[Coin]) -> MessageInfo {
-        MessageInfo {
-            sender: cosmwasm_std::Addr::unchecked(sender),
-            funds: funds.to_vec(),
-            random: Binary::from_base64("w6vk77ptGUl4u0cjkvFehZICh9UrYiT3HZJSfV5zY5k=").unwrap()
-        }
-    }
 
     fn instantiate_contract(deps: DepsMut) -> MessageInfo {
         let msg = InstantiateMsg {};
-        let info = mock_info_random("creator", &coins(200, "token"));
+        let info = mock_info("creator", &coins(200, "token"));
         let _res = instantiate(deps, mock_env(), info.clone(), msg).unwrap();
         info
     }

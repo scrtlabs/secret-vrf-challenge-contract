@@ -1,5 +1,5 @@
 use rand_chacha::ChaChaRng;
-use rand_core::{CryptoRng, Error, RngCore, SeedableRng};
+use rand_core::{CryptoRng, RngCore, SeedableRng};
 use sha2::{Digest, Sha256};
 
 
@@ -39,7 +39,7 @@ impl Prng {
         let mut hasher = Sha256::new();
 
         // write input message
-        hasher.update(&seed);
+        hasher.update(seed);
         let hash = hasher.finalize();
 
         let mut hash_bytes = [0u8; 32];

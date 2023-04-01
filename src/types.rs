@@ -1,4 +1,4 @@
-use std::any::Any;
+
 use cosmwasm_std::Coin;
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
@@ -44,7 +44,7 @@ impl GameResult {
     pub fn validate(&self) -> bool {
         match self {
             GameResult::Exact { num } => {
-                return num < &37u32
+                num < &37u32
             },
             GameResult::Line { nums: (n1, n2) } => {
                 n1 != n2
@@ -60,13 +60,9 @@ impl GameResult {
 
 impl PartialEq for GameResult {
     fn eq(&self, other: &Self) -> bool {
-        return match (self, other) {
+        match (self, other) {
             (GameResult::Line { nums: (other_a, other_b) }, GameResult::Line { nums: (this_a, this_b) }) => {
-                if (this_a == other_b || this_a == other_a) && (this_b == other_b || this_b == other_a) {
-                    true
-                } else {
-                    false
-                }
+                (this_a == other_b || this_a == other_a) && (this_b == other_b || this_b == other_a)
             }
             (GameResult::Corner { nums: (other_a, other_b, other_c, other_d) },
                 GameResult::Corner { nums: (this_a, this_b, this_c, this_d) }
@@ -97,11 +93,11 @@ impl PartialEq for GameResult {
                 n1 == n2
             },
             _ => false,
-        };
+        }
 
     }
 
-    fn ne(&self, other: &Self) -> bool {
+    fn ne(&self, _other: &Self) -> bool {
         todo!()
     }
 }

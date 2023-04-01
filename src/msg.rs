@@ -14,14 +14,6 @@ pub enum ExecuteMsg {
     }
 }
 
-/// also possible to get the input with the x,y values rather than a 64 byte string
-// #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-// #[serde(rename_all = "snake_case")]
-// pub struct PublicKey {
-//     x: String,
-//     y: String
-// }
-
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
@@ -29,12 +21,4 @@ pub enum QueryMsg {
     // ReadShare {
     //     user_index: u32
     // }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub struct ReadShareResponse {
-    pub(crate) user_share: String,
-    pub(crate) chain_share: String,
-    pub(crate) public_key: String
 }

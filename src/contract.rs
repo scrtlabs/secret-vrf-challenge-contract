@@ -3,7 +3,7 @@ use cosmwasm_std::{entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageIn
 use rand_core::RngCore;
 use crate::contract::GameResult::Corner;
 
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, ReadShareResponse};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::rng::Prng;
 use crate::types::{Bet, CornerType, GameResult, LineType};
 
@@ -157,7 +157,7 @@ fn return_winning_numbers(result: u32) -> Vec<GameResult> {
 fn calculate_sum_coins_of_bets(bets: &Vec<Bet>) -> HashMap<String, Uint128> {
     let mut coins: std::collections::HashMap<String, Uint128> = std::collections::HashMap::default();
     for b in bets {
-        let mut this_item = coins.get_mut(&b.amount.denom);
+        let this_item = coins.get_mut(&b.amount.denom);
 
         if this_item.is_none() {
             coins.insert(b.amount.denom.clone(), b.amount.amount);
@@ -197,7 +197,10 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
         }
     }
 
-    let r: Binary = info.random;
+    if env.block.random.is_none() {
+        return Err(StdError::generic_err("Error, random not available"));
+    }
+    let r: Binary = env.block.random.unwrap();
 
     let mut prng = Prng::new(r.as_slice());
 
@@ -228,7 +231,7 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
 
     let coins_to_send: Vec<Coin> = payouts.iter().map(|payout| Coin { denom: payout.0.to_string(), amount: payout.1.clone() }).collect();
 
-    let mut resp = Response::new().add_event(Event::new("wasm-roulette_result").add_attribute_plaintext(
+    let resp = Response::new().add_event(Event::new("wasm-roulette_result").add_attribute_plaintext(
         "result", result.to_string()
     ));
 
@@ -244,23 +247,8 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
 }
 
 
-fn read_share(deps: Deps, env: Env, user_index: u32) -> ReadShareResponse {
-    // todo: authentication
-
-    // read the shares from state
-
-    return ReadShareResponse {
-        user_share: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
-        chain_share: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
-        public_key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string()
-    }
-}
-
 #[entry_point]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    // match msg {
-    //     QueryMsg::ReadShare { user_index } => to_binary(&query_who_won(deps, env, game)?),
-    // }
     Ok(Binary::default())
 }
 

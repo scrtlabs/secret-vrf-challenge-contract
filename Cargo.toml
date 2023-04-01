@@ -36,8 +36,8 @@ schema = ["cosmwasm-schema"]
 [dependencies]
 serde = { version = "1.0.147", default-features = false, features = ["derive"] }
 schemars = "0.8.11"
-cosmwasm-std = { path = "../../CLionProjects/cosmwasm/packages/std", features = ["random"], package = "secret-cosmwasm-std" }
-cosmwasm-storage = { path = "../../CLionProjects/cosmwasm/packages/storage", package = "secret-cosmwasm-storage" }
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", rev = "45a5118acbc494ab57b95dd0719ba533cdf84cbe", features = ["random"] }
+cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", rev = "45a5118acbc494ab57b95dd0719ba533cdf84cbe" }
 #cw-storage-plus = { version = "0.14.0", default-features = false }
 
 # Used only for schema generation

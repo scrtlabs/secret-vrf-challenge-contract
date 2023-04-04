@@ -511,7 +511,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "secret_contract_example"
+name = "secret_roulette_example"
 version = "0.1.0"
 dependencies = [
  "base32",

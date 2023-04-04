@@ -58,6 +58,28 @@ impl GameResult {
     }
 }
 
+impl Into<String> for GameResult {
+    fn into(self) -> String {
+        match self {
+            GameResult::Exact { num } => num.to_string(),
+            GameResult::Red => "red".to_string(),
+            GameResult::Black => "black".to_string(),
+            GameResult::Range1to12 => "1-12".to_string(),
+            GameResult::Range13to24 => "13-24".to_string(),
+            GameResult::Range25to36 => "25-36".to_string(),
+            GameResult::Odd => "odd".to_string(),
+            GameResult::Even => "even".to_string(),
+            GameResult::Range2to1First => "2to11st".to_string(),
+            GameResult::Range2to1Second => "2to12nd".to_string(),
+            GameResult::Range2to1Third => "2to13rd".to_string(),
+            GameResult::Line { nums } => format!("double-{}-{}", nums.0, nums.1),
+            GameResult::Corner { nums } => format!("quad-{},{},{},{}", nums.0, nums.1, nums.2, nums.3),
+            GameResult::Range1to18 => "1-18".to_string(),
+            GameResult::Range19to36 => "19-36".to_string(),
+        }
+    }
+}
+
 impl PartialEq for GameResult {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -97,8 +119,8 @@ impl PartialEq for GameResult {
 
     }
 
-    fn ne(&self, _other: &Self) -> bool {
-        todo!()
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
     }
 }
 

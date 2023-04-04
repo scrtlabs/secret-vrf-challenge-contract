@@ -3,6 +3,6 @@
     "target": "es6",
     "module": "commonjs",
     "explainFiles": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
   }
 }

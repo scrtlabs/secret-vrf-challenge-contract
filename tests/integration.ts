@@ -1,8 +1,11 @@
 import axios from "axios";
-import {Wallet, SecretNetworkClient, TxResponse, fromBase64} from "secretjs";
+import {SecretNetworkClient, TxResponse, Wallet} from "secretjs";
 import fs from "fs";
 import assert from "assert";
-import {isNumber} from "util";
+
+function localsecretUrl() {
+  return process.env.LOCALSECRET || "http://localhost";
+}
 
 // Returns a client with which we can interact with secret network
 const initializeClient = async (endpoint: string, chainId: string) => {
@@ -93,8 +96,9 @@ const initializeContract = async (
   return contractInfo;
 };
 
+
 const getFromFaucet = async (address: string) => {
-  await axios.get(`http://localhost:5000/faucet?address=${address}`);
+  await axios.get(`${localsecretUrl()}:5000/faucet?address=${address}`);
 };
 
 async function getScrtBalance(userCli: SecretNetworkClient): Promise<string> {
@@ -128,7 +132,7 @@ async function fillUpFromFaucet(
 
 // Initialization procedure
 async function initializeAndUploadContract() {
-  let endpoint = "http://localhost:1317";
+  let endpoint = `${localsecretUrl()}:1317`;
   let chainId = "secretdev-1";
 
   const client = await initializeClient(endpoint, chainId);
@@ -199,7 +203,8 @@ async function test_run_game(
 }
 
 async function test_gas_limits() {
-  // There is no accurate way to measue gas limits but it is actually very recommended to make sure that the gas that is used by a specific tx makes sense
+  // There is no accurate way to measue gas limits but it is actually very recommended to make sure that the gas that
+  // is used by a specific tx makes sense
 }
 
 async function runTestFunction<R>(tester: CallableFunction): Promise<R> {
@@ -213,6 +218,9 @@ async function runTestFunction<R>(tester: CallableFunction): Promise<R> {
 }
 
 (async () => {
+
+  console.log(`Initializing contract and deploying to ${localsecretUrl()}`);
+
   const [client, client2, contractHash, contractAddress] =
     await initializeAndUploadContract();
 

@@ -88,3 +88,12 @@ jobs:
         run: sccache --show-stats
       - name: Stop sccache server
         run: sccache --stop-server || true
+
+      - name: Create artifact
+        run: |
+          echo "Integration tests completed" > integration-completed.txt
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: integration-completed
+          path: integration-completed.txt

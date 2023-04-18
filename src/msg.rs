@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use crate::types::Bet;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, JsonSchema)]
-pub struct InstantiateMsg {}
+pub struct InstantiateMsg {
+    pub min_bet: Option<u64>,
+    pub max_bet: Option<u64>
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]

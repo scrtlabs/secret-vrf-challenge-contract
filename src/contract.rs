@@ -6,17 +6,22 @@ use rand_core::RngCore;
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::rng::Prng;
+use crate::state::{Config, load_config, save_config};
 use crate::types::{Bet, CornerType, GameResult, LineType};
 
 #[entry_point]
 pub fn instantiate(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
-    _msg: InstantiateMsg,
+    msg: InstantiateMsg,
 ) -> StdResult<Response> {
 
     // save init params to state
+    save_config(deps.storage, &crate::state::Config {
+        min_bet: msg.min_bet.unwrap_or(0),
+        max_bet: msg.max_bet.unwrap_or(u64::MAX),
+    })?;
 
     Ok(Response::default())
 }
@@ -189,8 +194,26 @@ fn calculate_sum_coins_of_bets(bets: &Vec<Bet>) -> HashMap<String, Uint128> {
     coins
 }
 
+fn validate_amounts(sent_funds: &Vec<Coin>, allowed_amounts: Config) -> StdResult<()> {
+    let max_bet = allowed_amounts.max_bet as u128;
+    let min_bet = allowed_amounts.min_bet as u128;
+
+    for funds in sent_funds {
+        if funds.amount.u128() > max_bet {
+            return Err(StdError::generic_err("Bet is higher than table maximum"));
+        }
+
+        if funds.amount.u128() < min_bet {
+            return Err(StdError::generic_err("Bet is lower than table minimum"));
+        }
+    }
+
+    Ok(())
+}
+
 fn check_coins_match_input(coins: HashMap<String, Uint128>, sent_funds: Vec<Coin>) -> bool {
     for funds in sent_funds {
+
         if coins.get(&funds.denom).unwrap_or(&Uint128::zero()) != &funds.amount {
             return false;
         }
@@ -205,9 +228,14 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
 
     let sums = calculate_sum_coins_of_bets(&bets);
 
+    let config = load_config(deps.storage)?;
+
+    validate_amounts(&info.funds, config)?;
+
     if !check_coins_match_input(sums, info.funds) {
         return Err(StdError::generic_err("Input funds don't match sum of bets"));
     }
+
 
     for b in &bets {
         if !b.result.validate() {
@@ -240,9 +268,6 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
     }
 
     let mut payouts: HashMap<String, Uint128> = std::collections::HashMap::new();
-
-    deps.api.debug(&format!("payouts for bets are: {:?}", payouts));
-
 
     let mut winning_bets_evt = Event::new("winners");
 
@@ -302,7 +327,7 @@ mod tests {
     /// This is intended for use in test code only.
 
     fn instantiate_contract(deps: DepsMut) -> MessageInfo {
-        let msg = InstantiateMsg {};
+        let msg = InstantiateMsg { min_bet: None, max_bet: None };
         let info = mock_info("creator", &coins(200, "token"));
         let _res = instantiate(deps, mock_env(), info.clone(), msg).unwrap();
         info
@@ -337,7 +362,8 @@ mod tests {
 
         let res = execute(deps.as_mut(), mock_env(), info, execute_msg).unwrap();
 
-        assert_eq!(res.messages.len(), 1)
+        // bank send + last message marker
+        assert_eq!(res.messages.len(), 2)
     }
 
 

@@ -1,18 +1,21 @@
+use cw_storage_plus::Item;
+use cosmwasm_std::{StdResult, Storage};
+use serde::{Deserialize, Serialize};
 
+pub static CONFIG_KEY: &str = "config";
 
+pub static CONFIG_ITEM: Item<Config> = Item::new(CONFIG_KEY);
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Config {
+    pub min_bet: u64,
+    pub max_bet: u64
+}
 
+pub fn save_config(storage: &mut dyn Storage, config: &Config) -> StdResult<()> {
+    CONFIG_ITEM.save(storage, config)
+}
 
-// use cw_storage_plus::Map;
-
-pub static CONFIG_KEY: &[u8] = b"config";
-
-// pub fn save_match_info(storage: &mut dyn Storage, game: &str, state: RPSMatch) -> StdResult<()> {
-//     const GAME_STATE: Map<&[u8], RPSMatch> = Map::new("game_state");
-//     GAME_STATE.save(storage, game.as_bytes(), &state)
-// }
-//
-// pub fn load_match_info(storage: &dyn Storage, game: &str) -> StdResult<RPSMatch> {
-//     const GAME_STATE: Map<&[u8], RPSMatch> = Map::new("game_state");
-//     GAME_STATE.load(storage, game.as_bytes())
-// }
+pub fn load_config(storage: &dyn Storage) -> StdResult<Config> {
+    CONFIG_ITEM.load(storage)
+}

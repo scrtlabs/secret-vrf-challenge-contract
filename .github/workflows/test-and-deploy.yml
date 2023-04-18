@@ -92,6 +92,8 @@ jobs:
           rustup target add wasm32-unknown-unknown
       - name: Compile code
         run: make build-mainnet
+      - name: Install dependencies
+        run: npm --prefix tests/ install # Install dependencies
       - name: Deploy to remote & run integration tests
         run: |
           LOCALSECRET=${{ env.LOCALSECRET }} npx ts-node tests/integration.ts

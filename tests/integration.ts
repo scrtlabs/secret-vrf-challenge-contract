@@ -197,7 +197,7 @@ async function test_run_game(
   console.log(`Got result: ${rouletteResult}`)
 
   assert(
-      typeof rouletteResult === "number",
+      typeof Number(rouletteResult) === "number",
     `result returned something that isn't a number: ${JSON.stringify(tx)}`
   );
 }

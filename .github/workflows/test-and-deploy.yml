@@ -11,15 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - uses: ./.github/actions/install-rust
         with:
           toolchain: 1.63.0
-          target: wasm32-unknown-unknown
-          profile: minimal
-          override: true
       - name: Install Clippy
-        if: matrix.make.name == 'Clippy'
         run: |
           rustup component add clippy
       - name: Run Clippy
@@ -34,13 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - uses: ./.github/actions/install-rust
         with:
           toolchain: 1.63.0
-          target: wasm32-unknown-unknown
-          profile: minimal
-          override: true
       - name: "Run unit tests"
         run: |
           cargo test
@@ -72,7 +63,7 @@ jobs:
         run: npm --prefix tests/ install # Install dependencies
       - uses: ./.github/actions/install-rust
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: 1.63.0
       - name: Add wasm toolchain
         run: |
           rustup target add wasm32-unknown-unknown

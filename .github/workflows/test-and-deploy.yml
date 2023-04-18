@@ -1,0 +1,116 @@
+name: Integration Tests
+
+on: [push, pull_request]
+
+jobs:
+
+  # Clippy
+  Linting:
+    runs-on: [ubuntu-latest]
+    name: "Run linting tests"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.63.0
+          target: wasm32-unknown-unknown
+          profile: minimal
+          override: true
+      - name: Install Clippy
+        if: matrix.make.name == 'Clippy'
+        run: |
+          rustup component add clippy
+      - name: Run Clippy
+      - run: |
+          cargo clippy
+        
+
+  # Unit tests
+  Unit:
+    name: "Run Unit Tests"
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.63.0
+          target: wasm32-unknown-unknown
+          profile: minimal
+          override: true
+      - name: "Run unit tests"
+        run: |
+          cargo test
+
+  # Integration tests
+  Integration:
+    name: "Integration Tests (localsecret)"
+    runs-on: [ubuntu-latest]
+
+    env:
+      RUST_BACKTRACE: full
+
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      secret:
+        # Docker Hub image
+        image: ghcr.io/scrtlabs/localsecret:v1.9.0-beta.1-random
+        ports:
+          # Opens tcp port
+          - 5000:5000
+          - 9091:9091
+          - 1317:1317
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: npm --prefix tests/ install # Install dependencies
+      - uses: ./.github/actions/install-rust
+        with:
+          toolchain: ${{ matrix.rust }}
+      - name: Add wasm toolchain
+        run: |
+          rustup target add wasm32-unknown-unknown
+      - name: Compile code
+        run: make build
+      - name: Upload & Run tests
+        run: |
+          npx ts-node tests/integration.ts
+
+
+  Deploy-To-Devenv:
+
+    env:
+      LOCALSECRET: localsecret.dvbxbbc9c7fbepev.eastus.azurecontainer.io
+
+    needs: [Integration, Linting, Unit]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: integration-completed
+      - name: Check artifact
+        run: |
+          if [ ! -f "integration-completed.txt" ]; then
+            echo "Integration tests not completed successfully."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/install-rust
+        with:
+          toolchain: 1.63.0
+      - name: Add wasm toolchain
+        run: |
+          rustup target add wasm32-unknown-unknown
+      - name: Compile code
+        run: make build-mainnet
+      - name: Deploy to remote & run integration tests
+        run: |
+          LOCALSECRET=${{ env.LOCALSECRET }} npx ts-node tests/integration.ts

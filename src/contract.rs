@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Coin, Uint128, StdError, BankMsg, Event, Attribute};
+use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Coin, Uint128, StdError, BankMsg, Event};
+use cosmwasm_std::CosmosMsg::LastMsgMark;
 use rand_core::RngCore;
 
 
@@ -270,6 +271,9 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
         Ok(resp
             .add_event(winning_bets_evt)
             .add_message(msg)
+            .add_message(
+                LastMsgMark(cosmwasm_std::Empty {})
+            )
 
         )
     } else {

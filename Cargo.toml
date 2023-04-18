@@ -36,8 +36,8 @@ schema = ["cosmwasm-schema"]
 [dependencies]
 serde = { version = "1.0.147", default-features = false, features = ["derive"] }
 schemars = "0.8.11"
-cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", rev = "45a5118acbc494ab57b95dd0719ba533cdf84cbe", features = ["random"] }
-cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", rev = "45a5118acbc494ab57b95dd0719ba533cdf84cbe" }
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", rev = "d2a02cf9c734c1aa86b0d1c6607ece4317892dbb", features = ["random"] }
+cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", rev = "d2a02cf9c734c1aa86b0d1c6607ece4317892dbb" }
 #cw-storage-plus = { version = "0.14.0", default-features = false }
 
 # Used only for schema generation

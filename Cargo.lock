@@ -76,7 +76,7 @@ checksum = "520fbf3c07483f94e3e3ca9d0cfd913d7718ef2483d2cfd91c0d9e91474ab913"
 [[package]]
 name = "cosmwasm-crypto"
 version = "1.1.9"
-source = "git+https://github.com/scrtlabs/cosmwasm?rev=45a5118acbc494ab57b95dd0719ba533cdf84cbe#45a5118acbc494ab57b95dd0719ba533cdf84cbe"
+source = "git+https://github.com/scrtlabs/cosmwasm?rev=d2a02cf9c734c1aa86b0d1c6607ece4317892dbb#d2a02cf9c734c1aa86b0d1c6607ece4317892dbb"
 dependencies = [
  "digest 0.10.6",
  "ed25519-zebra",
@@ -88,7 +88,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-derive"
 version = "1.1.9"
-source = "git+https://github.com/scrtlabs/cosmwasm?rev=45a5118acbc494ab57b95dd0719ba533cdf84cbe#45a5118acbc494ab57b95dd0719ba533cdf84cbe"
+source = "git+https://github.com/scrtlabs/cosmwasm?rev=d2a02cf9c734c1aa86b0d1c6607ece4317892dbb#d2a02cf9c734c1aa86b0d1c6607ece4317892dbb"
 dependencies = [
  "syn",
 ]
@@ -120,7 +120,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-std"
 version = "1.1.9"
-source = "git+https://github.com/scrtlabs/cosmwasm?rev=45a5118acbc494ab57b95dd0719ba533cdf84cbe#45a5118acbc494ab57b95dd0719ba533cdf84cbe"
+source = "git+https://github.com/scrtlabs/cosmwasm?rev=d2a02cf9c734c1aa86b0d1c6607ece4317892dbb#d2a02cf9c734c1aa86b0d1c6607ece4317892dbb"
 dependencies = [
  "base64",
  "cosmwasm-crypto",
@@ -138,7 +138,7 @@ dependencies = [
 [[package]]
 name = "cosmwasm-storage"
 version = "1.1.9"
-source = "git+https://github.com/scrtlabs/cosmwasm?rev=45a5118acbc494ab57b95dd0719ba533cdf84cbe#45a5118acbc494ab57b95dd0719ba533cdf84cbe"
+source = "git+https://github.com/scrtlabs/cosmwasm?rev=d2a02cf9c734c1aa86b0d1c6607ece4317892dbb#d2a02cf9c734c1aa86b0d1c6607ece4317892dbb"
 dependencies = [
  "cosmwasm-std",
  "serde",

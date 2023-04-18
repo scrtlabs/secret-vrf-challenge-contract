@@ -2,6 +2,7 @@ import axios from "axios";
 import {Wallet, SecretNetworkClient, TxResponse, fromBase64} from "secretjs";
 import fs from "fs";
 import assert from "assert";
+import {isNumber} from "util";
 
 // Returns a client with which we can interact with secret network
 const initializeClient = async (endpoint: string, chainId: string) => {
@@ -19,7 +20,7 @@ const initializeClient = async (endpoint: string, chainId: string) => {
   return client;
 };
 
-// Stores and instantiaties a new contract in our network
+// Stores and instantiates a new contract in our network
 const initializeContract = async (
   client: SecretNetworkClient,
   contractPath: string
@@ -151,30 +152,6 @@ async function initializeAndUploadContract() {
   return clientInfo;
 }
 
-async function queryGameState(
-  client: SecretNetworkClient,
-  contractHash: string,
-  contractAddress: string,
-  gameCode: string,
-): Promise<string> {
-  type GameStateResponse = { state: string };
-
-  const countResponse = (await client.query.compute.queryContract({
-    contract_address: contractAddress,
-    code_hash: contractHash,
-    query: { game_state: { game: gameCode } },
-  })) as GameStateResponse;
-
-  if ('err"' in countResponse) {
-    throw new Error(
-      `Query failed with the following err: ${JSON.stringify(countResponse)}`
-    );
-  }
-
-  return countResponse.state;
-}
-
-
 async function initializeGame(
   client: SecretNetworkClient,
   contractHash: string,
@@ -198,48 +175,27 @@ async function initializeGame(
   return tx;
 }
 
-// The following functions are only some examples of how to write integration tests, there are many tests that we might want to write here.
-async function test_query_initial_status(
-  client: SecretNetworkClient,
-  contractHash: string,
-  contractAddress: string,
-  gameCode: string
-) {
-  const result: string = await queryGameState(
-    client,
-    contractHash,
-    contractAddress,
-      gameCode
-  );
-  assert(
-      result === "WaitingForPlayerToJoin",
-    `Status was ${result}, even though the game should be waiting for 2nd player"`
-  );
-}
-
-async function test_initialize_game(
+async function test_run_game(
   client: SecretNetworkClient,
   contractHash: string,
   contractAddress: string
 ) {
   let tx: TxResponse = await initializeGame(client, contractHash, contractAddress);
 
-  let gameCode = ""
+  let rouletteResult = ""
   for (const k in tx.jsonLog[0].events) {
     console.log(tx.jsonLog[0].events[k].type)
     if (tx.jsonLog[0].events[k].type.toLocaleLowerCase() === 'wasm-wasm-roulette_result') {
-      gameCode = tx.jsonLog[0].events[k].attributes[1].value;
+      rouletteResult = tx.jsonLog[0].events[k].attributes[1].value;
     }
   }
 
-  console.log(`Got result: ${gameCode}`)
+  console.log(`Got result: ${rouletteResult}`)
 
   assert(
-      gameCode !== "",
-    `Didn't get a new game code! This is the tx response: ${JSON.stringify(tx)}`
+      typeof rouletteResult === "number",
+    `result returned something that isn't a number: ${JSON.stringify(tx)}`
   );
-
-  return gameCode;
 }
 
 async function test_gas_limits() {
@@ -260,12 +216,9 @@ async function runTestFunction<R>(tester: CallableFunction): Promise<R> {
   const [client, client2, contractHash, contractAddress] =
     await initializeAndUploadContract();
 
-  let gameCode = await runTestFunction<string>(
-      test_initialize_game.bind(this, client, contractHash, contractAddress),
-  );
 
-  // await runTestFunction(
-  //   test_query_initial_status.bind(this, client, contractHash, contractAddress, gameCode),
-  // );
+  await runTestFunction<string>(
+      test_run_game.bind(this, client, contractHash, contractAddress),
+  );
 
 })();

@@ -133,7 +133,7 @@ async function fillUpFromFaucet(
 // Initialization procedure
 async function initializeAndUploadContract() {
   let endpoint = `${localsecretUrl()}:1317`;
-  let chainId = "secretdev-1";
+  let chainId =  process.env.CHAINID || "secretdev-1";
 
   const client = await initializeClient(endpoint, chainId);
   // we'll need 2 players for the game

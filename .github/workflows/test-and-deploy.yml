@@ -77,7 +77,7 @@ jobs:
   Deploy-To-Devenv:
 
     env:
-      LOCALSECRET: http://localsecret.dvbxbbc9c7fbepev.eastus.azurecontainer.io
+      LOCALSECRET: http://localsecret2.esf6a3dqgqbabbgn.eastus.azurecontainer.io
 
     needs: [Integration, Linting, Unit]
     runs-on: ubuntu-latest

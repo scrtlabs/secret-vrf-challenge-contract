@@ -78,6 +78,7 @@ jobs:
 
     env:
       LOCALSECRET: http://localsecret2.esf6a3dqgqbabbgn.eastus.azurecontainer.io
+      CHAINID: secretdev-2
 
     needs: [Integration, Linting, Unit]
     runs-on: ubuntu-latest
@@ -96,4 +97,4 @@ jobs:
         run: npm --prefix tests/ install # Install dependencies
       - name: Deploy to remote & run integration tests
         run: |
-          LOCALSECRET=${{ env.LOCALSECRET }} npx ts-node tests/integration.ts
+          CHAINID=${{ env.CHAINID }} LOCALSECRET=${{ env.LOCALSECRET }} npx ts-node tests/integration.ts

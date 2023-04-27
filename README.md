@@ -1,6 +1,6 @@
 # Secret Roulette
 
-This repo contains the secret contract implementation of a rock paper scissors game. 
+This repo contains the secret contract implementation of a roulette game. 
 
 It's fairly straightforward if you know your way around a CosmWasm contract, and is mainly intended to be used as an example of some tricks and usages of common libraries or other scenarios contract developers may encounter.
 

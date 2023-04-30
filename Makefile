@@ -1,3 +1,10 @@
+# This is a build suitable for uploading to mainnet.
+# Calls to `debug_print` get removed by the compiler.
+.PHONY: build-mainnet _build-mainnet
+build-mainnet: _build-mainnet compress-wasm
+_build-mainnet:
+	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown
+
 .PHONY: check
 check:
 	cargo check
@@ -19,13 +26,6 @@ unit-test:
 .PHONY: build _build
 build: _build compress-wasm
 _build:
-	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown
-
-# This is a build suitable for uploading to mainnet.
-# Calls to `debug_print` get removed by the compiler.
-.PHONY: build-mainnet _build-mainnet
-build-mainnet: _build-mainnet compress-wasm
-_build-mainnet:
 	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown
 
 # like build-mainnet, but slower and more deterministic
@@ -68,11 +68,11 @@ instantiate-local:
 
 .PHONY: cli-store-contract
 cli-store-contract:
-	secretcli tx compute store -y --from a --gas 5000000 contract.wasm.gz
+	secretd tx compute store -y --from a --gas 5000000 contract.wasm.gz
 
 .PHONY: cli-instantiate
 cli-instantiate:
-	secretcli tx compute instantiate 1 '{}' -y  --from a --gas 5000000 --label yo
+	secretd tx compute instantiate 1 '{}' -y  --from a --gas 5000000 --label yo
 
 .PHONY: clean
 clean:

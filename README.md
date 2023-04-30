@@ -22,4 +22,4 @@ Can't run your local secret environment because you're on M1, or too lazy to ins
 
 For more details on how to use see [usage](docs/gitpod.md)
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/scrtlabs/rps)
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/scrtlabs/random-roulette-contract)

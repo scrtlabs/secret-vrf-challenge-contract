@@ -71,7 +71,12 @@ const initializeContract = async (
     {
       sender: client.address,
       code_id: codeId,
-      init_msg: { },
+      init_msg: {
+        min_bet: 5,
+        max_bet: 1000,
+        max_total: 1_000_000,
+        supported_denoms: ["uscrt"]
+      },
       code_hash: contractCodeHash,
       label: "My contract" + Math.ceil(Math.random() * 10000), // The label should be unique for every contract, add random string in order to maintain uniqueness
     },

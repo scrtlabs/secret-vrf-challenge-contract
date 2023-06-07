@@ -5,14 +5,14 @@ use rand_core::RngCore;
 
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::rng::Prng;
-use crate::state::{Config, load_config, save_config};
+use crate::state::{Config, load_admin, load_config, save_admin, save_config};
 use crate::types::{Bet, CornerType, GameResult, LineType};
 
 #[entry_point]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
 
@@ -23,6 +23,12 @@ pub fn instantiate(
         max_total: msg.max_total.unwrap_or(u64::MAX),
         supported_denoms: msg.supported_denoms.unwrap_or(vec!["uscrt".to_string()]),
     })?;
+
+    if let Some(admin) = msg.admin {
+        save_admin(deps.storage, &admin)?
+    } else {
+        save_admin(deps.storage, &info.sender)?
+    }
 
     Ok(Response::default())
 }
@@ -37,7 +43,31 @@ pub fn execute(
 
     match msg {
         ExecuteMsg::Bet { bets } =>
-            handle_game_result(deps, env, info, bets)
+            handle_game_result(deps, env, info, bets),
+        ExecuteMsg::AdminWithdraw { coin } => {
+            let admin = load_admin(deps.storage)?;
+
+            if admin != info.sender {
+                return Err(StdError::generic_err("You no take candle"));
+            }
+
+            let msg = BankMsg::Send { to_address: info.sender.to_string(), amount: vec![coin] };
+
+            Ok(Response::new()
+                .add_message(msg)
+            )
+        }
+        ExecuteMsg::ChangeAdmin { admin } => {
+            let prev_admin = load_admin(deps.storage)?;
+
+            if prev_admin != info.sender {
+                return Err(StdError::generic_err("You no take candle"));
+            }
+
+            save_admin(deps.storage, &admin)?;
+
+            Ok(Response::default())
+        }
     }
 }
 
@@ -338,14 +368,14 @@ mod tests {
     use cosmwasm_std::testing::{
         mock_dependencies, mock_env, mock_info,
     };
-    use cosmwasm_std::{coins};
+    use cosmwasm_std::{Addr, coins};
     use std::collections::HashMap;
     use crate::contract::return_winning_numbers;
     /// Just set sender and funds for the message.
     /// This is intended for use in test code only.
 
     fn instantiate_contract(deps: DepsMut) -> MessageInfo {
-        let msg = InstantiateMsg { min_bet: None, max_bet: None, max_total: None, supported_denoms: Some(vec!["token".to_string()]) };
+        let msg = InstantiateMsg { min_bet: None, max_bet: None, max_total: None, supported_denoms: Some(vec!["token".to_string()]), admin: None };
         let info = mock_info("creator", &coins(200, "token"));
         let _res = instantiate(deps, mock_env(), info.clone(), msg).unwrap();
         info
@@ -382,6 +412,81 @@ mod tests {
 
         // bank send + last message marker
         assert_eq!(res.messages.len(), 2)
+    }
+
+    #[test]
+    fn change_admin() {
+        let mut deps = mock_dependencies();
+        let _env = mock_env();
+
+        instantiate_contract(deps.as_mut());
+        // test withdraw with admin
+
+        let info = mock_info("creator", &coins(200, "token"));
+        let change_admin_msg = ExecuteMsg::ChangeAdmin {admin: Addr::unchecked("creator2")};
+        let res = execute(deps.as_mut(), mock_env(), info, change_admin_msg);
+
+        assert!(res.is_ok());
+
+        // test withdraw without admin
+
+        let info = mock_info("creator2", &coins(1, "token"));
+        let withdraw = ExecuteMsg::AdminWithdraw {coin: Coin {denom: "token".to_string(), amount: Uint128::from(200_u16)}};
+        let res = execute(deps.as_mut(), mock_env(), info, withdraw);
+
+        // make sure message failed
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn change_admin_fail() {
+        let mut deps = mock_dependencies();
+        let _env = mock_env();
+
+        instantiate_contract(deps.as_mut());
+
+        // test withdraw with admin
+
+        let info = mock_info("creator2", &coins(200, "token"));
+        let change_admin_msg = ExecuteMsg::ChangeAdmin {admin: Addr::unchecked("creator2")};
+        let res = execute(deps.as_mut(), mock_env(), info, change_admin_msg);
+
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn admin_withdraw() {
+        let mut deps = mock_dependencies();
+        let _env = mock_env();
+
+        let info = instantiate_contract(deps.as_mut());
+
+        let bet = Bet{ amount: Coin { denom: "token".to_string(), amount: Uint128::from(200_u16) }, result: GameResult::Line {nums: (1, 2)} };
+
+        let execute_msg = ExecuteMsg::Bet {bets: vec![bet]};
+
+        let res = execute(deps.as_mut(), mock_env(), info.clone(), execute_msg).unwrap();
+
+        // bank send + last message marker
+        assert_eq!(res.messages.len(), 2);
+
+        // test withdraw with admin
+
+        let info = mock_info("creator", &coins(200, "token"));
+        let withdraw = ExecuteMsg::AdminWithdraw {coin: Coin {denom: "token".to_string(), amount: Uint128::from(200_u16)}};
+        let res = execute(deps.as_mut(), mock_env(), info, withdraw).unwrap();
+
+        // bank send
+        assert_eq!(res.messages.len(), 1);
+
+        // test withdraw without admin
+
+        let info = mock_info("creator2", &coins(200, "token"));
+        let withdraw = ExecuteMsg::AdminWithdraw {coin: Coin {denom: "token".to_string(), amount: Uint128::from(200_u16)}};
+        let res = execute(deps.as_mut(), mock_env(), info, withdraw);
+
+        // make sure message failed
+        assert!(res.is_err());
     }
 
 
@@ -528,7 +633,7 @@ mod tests {
         }
     }
 
-    use cosmwasm_std::{StdError, Uint128};
+    use cosmwasm_std::{Uint128};
 
     #[test]
     fn test_calculate_sum_coins_of_bets_and_check_coins_match_input() {
@@ -603,10 +708,6 @@ mod tests {
             },
         ];
 
-        let funds = vec![
-            Coin::new( 5, "def"),
-        ];
-
         let config = Config {
             min_bet: 0,
             max_bet: 3,
@@ -621,13 +722,6 @@ mod tests {
 
     #[test]
     fn test_bet_more_than_max_total() {
-        let bets = vec![
-            Bet {
-                amount: Coin::new( 5, "def"),
-                result: GameResult::Red,
-            },
-        ];
-
         let funds = vec![
             Coin::new( 5, "def"),
         ];

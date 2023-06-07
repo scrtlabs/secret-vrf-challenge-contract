@@ -1,4 +1,4 @@
-
+use cosmwasm_std::{Addr, Coin};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use crate::types::Bet;
@@ -8,7 +8,8 @@ pub struct InstantiateMsg {
     pub min_bet: Option<u64>,
     pub max_bet: Option<u64>,
     pub max_total: Option<u64>,
-    pub supported_denoms: Option<Vec<String>>
+    pub supported_denoms: Option<Vec<String>>,
+    pub admin: Option<Addr>
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -16,6 +17,12 @@ pub struct InstantiateMsg {
 pub enum ExecuteMsg {
     Bet {
         bets: Vec<Bet>
+    },
+    AdminWithdraw {
+        coin: Coin
+    },
+    ChangeAdmin {
+        admin: Addr
     }
 }
 

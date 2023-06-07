@@ -68,11 +68,11 @@ instantiate-local:
 
 .PHONY: cli-store-contract
 cli-store-contract:
-	secretd tx compute store -y --from a --gas 5000000 contract.wasm.gz
+	secretcli tx compute store -y --from a --gas 5000000 contract.wasm.gz
 
 .PHONY: cli-instantiate
 cli-instantiate:
-	secretd tx compute instantiate 1 '{}' -y  --from a --gas 5000000 --label yo
+	secretcli tx compute instantiate 1 '{}' -y  --from a --gas 5000000 --label yo
 
 .PHONY: clean
 clean:

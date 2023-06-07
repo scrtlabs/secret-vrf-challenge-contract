@@ -9,7 +9,9 @@ pub static CONFIG_ITEM: Item<Config> = Item::new(CONFIG_KEY);
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
     pub min_bet: u64,
-    pub max_bet: u64
+    pub max_bet: u64,
+    pub max_total: u64,
+    pub supported_denoms: Vec<String>
 }
 
 pub fn save_config(storage: &mut dyn Storage, config: &Config) -> StdResult<()> {

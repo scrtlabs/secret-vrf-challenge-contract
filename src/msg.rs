@@ -6,7 +6,9 @@ use crate::types::Bet;
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
     pub min_bet: Option<u64>,
-    pub max_bet: Option<u64>
+    pub max_bet: Option<u64>,
+    pub max_total: Option<u64>,
+    pub supported_denoms: Option<Vec<String>>
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

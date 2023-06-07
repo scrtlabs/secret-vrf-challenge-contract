@@ -36,8 +36,8 @@ schema = ["cosmwasm-schema"]
 [dependencies]
 serde = { version = "1.0.147", default-features = false, features = ["derive"] }
 schemars = "0.8.11"
-cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", rev = "d2a02cf9c734c1aa86b0d1c6607ece4317892dbb", features = ["random"] }
-cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", rev = "d2a02cf9c734c1aa86b0d1c6607ece4317892dbb" }
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret", features = ["random"] }
+cosmwasm-storage = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
 
 cw-storage-plus = { version = "0.14.0", default-features = false }
 
@@ -53,7 +53,7 @@ sha2 = "0.10.6"
 cosmwasm-schema = { version = "1.1.0", optional = true }
 
 [patch.crates-io]
-cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", rev = "d2a02cf9c734c1aa86b0d1c6607ece4317892dbb" }
+cosmwasm-std = { git = "https://github.com/scrtlabs/cosmwasm", branch = "secret" }
 
 
 [[bin]]

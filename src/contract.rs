@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Coin, Uint128, StdError, BankMsg, Event};
-use cosmwasm_std::CosmosMsg::LastMsgMark;
+use cosmwasm_std::{entry_point, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Coin, Uint128, StdError, BankMsg, Event, CosmosMsg};
 use rand_core::RngCore;
 
 
@@ -21,6 +20,8 @@ pub fn instantiate(
     save_config(deps.storage, &crate::state::Config {
         min_bet: msg.min_bet.unwrap_or(0),
         max_bet: msg.max_bet.unwrap_or(u64::MAX),
+        max_total: msg.max_total.unwrap_or(u64::MAX),
+        supported_denoms: msg.supported_denoms.unwrap_or(vec!["uscrt".to_string()]),
     })?;
 
     Ok(Response::default())
@@ -174,9 +175,23 @@ fn return_winning_numbers(result: u32) -> Vec<GameResult> {
     winners
 }
 
-fn calculate_sum_coins_of_bets(bets: &Vec<Bet>) -> HashMap<String, Uint128> {
-    let mut coins: std::collections::HashMap<String, Uint128> = std::collections::HashMap::default();
+fn calculate_sum_coins_of_bets(bets: &Vec<Bet>, config: &Config) -> StdResult<HashMap<String, Uint128>> {
+    let mut coins: HashMap<String, Uint128> = HashMap::default();
     for b in bets {
+
+        let bet_amount = b.amount.amount.u128() as u64;
+        if !config.supported_denoms.contains(&b.amount.denom) {
+            return Err(StdError::generic_err("Denom unsupported supported"));
+        }
+
+        if bet_amount > config.max_bet {
+            return Err(StdError::generic_err("Bet is higher than table maximum"));
+        }
+
+        if bet_amount < config.min_bet {
+            return Err(StdError::generic_err("Bet is lower than table minimum"));
+        }
+
         let this_item = coins.get_mut(&b.amount.denom);
 
         if this_item.is_none() {
@@ -191,20 +206,23 @@ fn calculate_sum_coins_of_bets(bets: &Vec<Bet>) -> HashMap<String, Uint128> {
         }
     }
 
-    coins
+    Ok(coins)
 }
 
-fn validate_amounts(sent_funds: &Vec<Coin>, allowed_amounts: Config) -> StdResult<()> {
-    let max_bet = allowed_amounts.max_bet as u128;
-    let min_bet = allowed_amounts.min_bet as u128;
+fn validate_amounts(sent_funds: &Vec<Coin>, config: Config) -> StdResult<()> {
+    let max_total = config.max_total as u128;
+    let min_bet = config.min_bet as u128;
 
     for funds in sent_funds {
-        if funds.amount.u128() > max_bet {
+        if funds.amount.u128() > max_total {
             return Err(StdError::generic_err("Bet is higher than table maximum"));
         }
 
         if funds.amount.u128() < min_bet {
             return Err(StdError::generic_err("Bet is lower than table minimum"));
+        }
+        if !config.supported_denoms.contains(&funds.denom) {
+            return Err(StdError::generic_err("Denom unsupported supported"));
         }
     }
 
@@ -226,9 +244,9 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
 
     deps.api.debug(&format!("Bets are in: {:?}", bets));
 
-    let sums = calculate_sum_coins_of_bets(&bets);
-
     let config = load_config(deps.storage)?;
+
+    let sums = calculate_sum_coins_of_bets(&bets, &config)?;
 
     validate_amounts(&info.funds, config)?;
 
@@ -297,7 +315,7 @@ fn handle_game_result(deps: DepsMut, env: Env, info: MessageInfo, bets: Vec<Bet>
             .add_event(winning_bets_evt)
             .add_message(msg)
             .add_message(
-                LastMsgMark(cosmwasm_std::Empty {})
+                CosmosMsg::finalize_tx()
             )
 
         )
@@ -327,7 +345,7 @@ mod tests {
     /// This is intended for use in test code only.
 
     fn instantiate_contract(deps: DepsMut) -> MessageInfo {
-        let msg = InstantiateMsg { min_bet: None, max_bet: None };
+        let msg = InstantiateMsg { min_bet: None, max_bet: None, max_total: None, supported_denoms: Some(vec!["token".to_string()]) };
         let info = mock_info("creator", &coins(200, "token"));
         let _res = instantiate(deps, mock_env(), info.clone(), msg).unwrap();
         info
@@ -534,9 +552,14 @@ mod tests {
             Coin::new( 5, "def"),
         ];
 
-        let sum_of_bets = calculate_sum_coins_of_bets(&bets);
+        let config = Config {
+            min_bet: 0,
+            max_bet: u64::MAX,
+            max_total: u64::MAX,
+            supported_denoms: vec!["abc".to_string(), "def".to_string()],
+        };
 
-        let result = check_coins_match_input(calculate_sum_coins_of_bets(&bets), funds.clone());
+        let result = check_coins_match_input(calculate_sum_coins_of_bets(&bets, &config).unwrap(), funds.clone());
         assert_eq!(result, false);
 
         let bets = vec![
@@ -559,10 +582,65 @@ mod tests {
             Coin::new( 5, "def"),
         ];
 
-        let sum_of_bets = calculate_sum_coins_of_bets(&bets);
+        let config = Config {
+            min_bet: 0,
+            max_bet: u64::MAX,
+            max_total: u64::MAX,
+            supported_denoms: vec!["abc".to_string(), "def".to_string()],
+        };
 
-        let result = check_coins_match_input(calculate_sum_coins_of_bets(&bets), funds.clone());
+        let result = check_coins_match_input(calculate_sum_coins_of_bets(&bets, &config).unwrap(), funds.clone());
         assert_eq!(result, true);
         //assert_eq!(result.unwrap_err(), StdError::generic_err("Input funds don't match sum of bets"));
+    }
+
+    #[test]
+    fn test_bet_more_than_single_bet_max() {
+        let bets = vec![
+            Bet {
+                amount: Coin::new( 5, "def"),
+                result: GameResult::Red,
+            },
+        ];
+
+        let funds = vec![
+            Coin::new( 5, "def"),
+        ];
+
+        let config = Config {
+            min_bet: 0,
+            max_bet: 3,
+            max_total: u64::MAX,
+            supported_denoms: vec!["def".to_string()],
+        };
+
+        let result = calculate_sum_coins_of_bets(&bets, &config);
+
+        assert_eq!(result.is_err(), true);
+    }
+
+    #[test]
+    fn test_bet_more_than_max_total() {
+        let bets = vec![
+            Bet {
+                amount: Coin::new( 5, "def"),
+                result: GameResult::Red,
+            },
+        ];
+
+        let funds = vec![
+            Coin::new( 5, "def"),
+        ];
+
+        let config = Config {
+            min_bet: 0,
+            max_bet: 5,
+            max_total: 4,
+            supported_denoms: vec!["def".to_string()],
+        };
+
+        let result = validate_amounts(&funds, config);
+
+        assert_eq!(result.is_err(), true);
     }
 }
